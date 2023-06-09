@@ -74,8 +74,22 @@ const App: () => Node = () => {
 	const [intervalId, setIntervalId]           = useState ('stop');
 	const [currentLocation, setCurrentLocation] = useState (null);
 
-	const watchId                         = useRef();
-	const pageRef                         = useRef();
+	const watchId                               = useRef();
+	const pageRef                               = useRef();
+
+	const geoConfig = {
+		acuracy : {
+			android          : "high",
+			ios              : "best",
+		},
+		enableHighAccuracy   : true,
+		timeout              : 15000,
+		maximumAge           : 10000,
+		distanceFilter       : 0,
+		forceRequestLocation : true,
+		forceLocationManager : false,
+		showLocationDialog   : true,
+	};
 
 	useEffect(() => {
 		console.log ("useEffect : action=", action);
@@ -161,42 +175,54 @@ const App: () => Node = () => {
 			(error) => {
 				console.log ("Geolocation.getCurrentPosition : error : ", error);
 			},
-			{
-				acuracy : {
-					android : "high",
-					ios     : "best",
-				},
-				enableHighAccuracy   : true,
-				timeout              : 15000,
-				maximumAge           : 10000,
-				distanceFilter       : 0,
-				forceRequestLocation : true,
-				forceLocationManager : false,
-				showLocationDialog   : true,
-			}
+			geoConfig
 		);
 	}
 
+	async function getLocationUpdates () {
+		const hasPermission = await hasLocationPermission();
+		if (!hasPermission) return;
 
+		await startForegroundService();
 
+		watchId.current = Geolocation.watchPosition(
+			(position) => {
+				console.log ("Geolocation.watchPosition : ", position);
+				setCurrentLocation (position);
+			},
+			(error) => {
+				console.log ("Geolocation.watchPosition : error : ", error);
+			},
+			geoConfig
+		);
+	}
 
-
-
-
-
-	function trackLength ({track}) {
-		let length = 0;
-		for (let i = 1; i < track.length; i++) {
-			length += pointsDistance(track[i - 1], track[i]);
+	const startForegroundService = async () => {
+		if (Platform.Version >= 26) {
+			await VIForegroundService.getInstance().createNotificationChannel({
+				id              : "locationChannel",
+				name            : "Location Tracking Channel",
+				description     : "Tracks location of user",
+				enableVibration : false,
+			});
 		}
-		return length;
+		return VIForegroundService.getInstance().startService({
+			channelId : "locationChannel",
+			id        : 420,
+			title     : "Distans",
+			text      : "Tracking location updates",
+			icon      : "ic_launcher",
+		});
 	};
 
-
-
-
-
-
+	function onStartPress () {
+		setAction ('start');
+		getLocationUpdates ();
+	}
+	function onStopPress () {
+		setAction ('stop');
+		stopLocationUpdates ();
+	}
 
 	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
 	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
@@ -226,7 +252,7 @@ const App: () => Node = () => {
 				<View>
 					<TouchableOpacity
 						style={styles.button}
-						onPress={() => setAction ('start')}
+						onPress={() => onStartPress()}
 					>
 						<Text style={styles.buttonText}>Start</Text>
 					</TouchableOpacity>
@@ -234,13 +260,13 @@ const App: () => Node = () => {
 				<View style={styles.centeredView}>
 					<Text style={styles.title}>{distance} {units}</Text>
 					<Text style={styles.title}>{timeTaken} seconds</Text>
-					<Text style={styles.title}>Lat  : {currentLocation.coords.latitude} </Text>
-					<Text style={styles.title}>Long : {currentLocation.coords.longitude} </Text>
+					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
+					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
 				</View>
 				<View>
 					<TouchableOpacity
 						style={styles.button}
-						onPress={() => setAction ('stop')}
+						onPress={() => onStopPress()}
 					>
 						<Text style={styles.buttonText}>Stop</Text>
 					</TouchableOpacity>
