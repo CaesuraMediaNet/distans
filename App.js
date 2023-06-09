@@ -84,6 +84,9 @@ const App: () => Node = () => {
 		setShowSettings (true);
 	}
 
+	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
+	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
+	//
 	return (
 		<SafeAreaView style={styles.container}>
 			<StatusBar />
