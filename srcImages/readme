@@ -1,0 +1,19 @@
+Fri  9 Jun 17:17:01 BST 2023
+----------------------------
+copyem              : Copies the relavant sizes to the android labyrynth.
+distans-icon.odp    : Icon in Presentation 512x512
+distans-icon.png    : Exported png to go to ../src/assets/images and uploaded to https://www.appicon.co/#image-sets to get ~/Downloads/ImageSets.zip
+distans-splash.odp  : Splash in Presentation 1080x1920
+distans-splash.png  : Exported png uploaded to https://www.appicon.co/#image-sets to get ~/Downloads/ImageSets.zip
+Icons.zip           : mv ~/Downloads/ImageSets.zip ./Icons.zip
+Splash.zip          : mv ~/Downloads/ImageSets.zip ./Splash.zip
+
+1) Create splash (1080x1920) and icon (512x512) in LibreOffice Presentation (get aspect ratio right in cm)
+2) Export as distans-[icon|splash].png - splash 1080x1920 and icon 512x512
+3) Copy distans-icon.png to ../src/assets/images for display in header etc.
+4) Upload distans-icon.png to https://www.appicon.co/#image-sets (4x) and get ~/Downloads/ImageSets.zip
+5) mv ~/Downloads/ImageSets.zip ./Icons.zip
+6) Upload distans-splash.png to https://www.appicon.co/#image-sets (4x) and get ~/Downloads/ImageSets.zip
+7) mv ~/Downloads/ImageSets.zip ./Splash.zip
+8) unzip Icons.zip; unzip Splash.zip
+9) . ./copyem

@@ -57,11 +57,28 @@ import styles       from './styles';
 const App: () => Node = () => {
 
 	const [showSettings, setShowSettings] = useState (false);
+	const [distance, setDistance]         = useState (0);
+	const [timeTaken, setTimeTaken]       = useState (0);
+	const [units, setUnits]               = useState ('miles');
+	const [action, setAction]             = useState ('stop');
+	const [intervalId, setIntervalId]     = useState ('stop');
 	const pageRef = useRef();
 
 	useEffect(() => {
+		console.log ("useEffect : action=", action);
 		SplashScreen.hide();
-	}, []);
+		function updateTimer () {
+			setTimeTaken ((setTimeTaken) => setTimeTaken + 1);
+		}
+		if (action === "stop") {
+			clearInterval (intervalId);
+		} else if (action === "start") {
+			setTimeTaken (0);
+			let thisIntervalId = setInterval (updateTimer, 1000);
+			setIntervalId (thisIntervalId);
+		}
+		return () => clearInterval (intervalId);
+	}, [action]);
 
 	function showSettingsPage () {
 		setShowSettings (true);
@@ -87,6 +104,26 @@ const App: () => Node = () => {
 						onPress={() => showSettingsPage ()}
 					>
 						<FontAwesomeIcon  color={'dimgray'} size={35} icon={faGear} />
+					</TouchableOpacity>
+				</View>
+				<View>
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => setAction ('start')}
+					>
+						<Text style={styles.buttonText}>Start</Text>
+					</TouchableOpacity>
+				</View>
+				<View style={styles.centeredView}>
+					<Text style={styles.title}>{distance} {units}</Text>
+					<Text style={styles.title}>{timeTaken} seconds</Text>
+				</View>
+				<View>
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => setAction ('stop')}
+					>
+						<Text style={styles.buttonText}>Stop</Text>
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
