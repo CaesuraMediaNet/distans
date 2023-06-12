@@ -70,7 +70,7 @@ const App: () => Node = () => {
 	const [timeTaken, setTimeTaken]             = useState(0);
 	const [units, setUnits]                     = useState('cm');
 	const [action, setAction]                   = useState('stop');
-	const [intervalId, setIntervalId]           = useState('stop');
+	const [intervalId, setIntervalId]           = useState(0);
 	const [currentLocation, setCurrentLocation] = useState(null);
 	const [trackDistance, setTrackDistance]     = useState("0.00");
 	const [speed, setSpeed]                     = useState('');
@@ -264,7 +264,7 @@ const App: () => Node = () => {
 	}
 	function onStartPress  () {
 		setAction          ('start');
-		setTrackDistance   (0);
+		setTrackDistance   ("0.00");
 		setUnits           ('cm');
 		trackRef.current = [];
 		getCurrentLocation ();
