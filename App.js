@@ -58,9 +58,11 @@ import { getPreciseDistance }       from "geolib";
 // Local Components.
 //
 import styles       from './styles';
-
-// Local functions.
-//
+import {
+	addTrack,
+	getTracks,
+	clearTracks,
+}                   from './functions/savedTracks';
 
 // The Distans App.
 //
@@ -74,6 +76,7 @@ const App: () => Node = () => {
 	const [currentLocation, setCurrentLocation] = useState(null);
 	const [trackDistance, setTrackDistance]     = useState("0.00");
 	const [speed, setSpeed]                     = useState('');
+	const [history, setHistory]                 = useState ([]);
 
 	// Tracks are updated within a 
 	const trackRef                              = useRef([]);
@@ -113,6 +116,8 @@ const App: () => Node = () => {
 	useEffect(() => {
 		async function fetchData() {
 			await getCurrentLocation();
+			let currentHistory = await getTracks ();
+			setHistory (currentHistory);
 		}
 		fetchData();
 		return () => {stopLocationUpdates()}
@@ -261,6 +266,7 @@ const App: () => Node = () => {
 			speedText = `Speed : ${speed.toFixed (2)} mph`;
 		}
 		setSpeed (speedText);
+		return speedText;
 	}
 	function onStartPress  () {
 		setAction          ('start');
@@ -271,10 +277,22 @@ const App: () => Node = () => {
 		setTimeTaken       (0);
 		getLocationUpdates ();
 	}
-	function onStopPress () {
+	async function onStopPress () {
 		setAction ('stop');
 		stopLocationUpdates ();
-		calculateSpeed ();
+		let thisSpeed = calculateSpeed ();
+		let currentHistory = history.slice();
+		let thisTrack = {
+			date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
+			distance  : trackDistance,
+			time      : timeTaken,
+			units     : units,
+			speed     : thisSpeed,
+		};
+		await addTrack (thisTrack);
+
+		currentHistory.push (thisTrack);
+		setHistory (currentHistory);
 	}
 
 	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
@@ -329,6 +347,11 @@ const App: () => Node = () => {
 						<Text style={styles.buttonText}>Stop</Text>
 					</TouchableOpacity>
 				</View>
+				{history.map ((track, index) => (
+					<Text key={index} style={styles.medText}>
+						{track.date} :  {track.distance} {track.units} : {track.time} seconds : {track.speed}
+					</Text>
+				))}
 			</ScrollView>
 		</SafeAreaView>
   );
