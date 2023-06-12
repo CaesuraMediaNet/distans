@@ -66,14 +66,17 @@ import styles       from './styles';
 //
 const App: () => Node = () => {
 
-	const [showSettings, setShowSettings]       = useState (false);
-	const [distance, setDistance]               = useState (0);
-	const [timeTaken, setTimeTaken]             = useState (0);
-	const [units, setUnits]                     = useState ('miles');
-	const [action, setAction]                   = useState ('stop');
-	const [intervalId, setIntervalId]           = useState ('stop');
-	const [currentLocation, setCurrentLocation] = useState (null);
+	const [showSettings, setShowSettings]       = useState(false);
+	const [timeTaken, setTimeTaken]             = useState(0);
+	const [units, setUnits]                     = useState('miles');
+	const [action, setAction]                   = useState('stop');
+	const [intervalId, setIntervalId]           = useState('stop');
+	const [currentLocation, setCurrentLocation] = useState(null);
+	const [track,setTrack]                      = useState([]);
+	const [trackDistance, setTrackDistance]     = useState(0);
 
+	// Tracks are updated within a 
+	const trackRef                              = useRef([]);
 	const watchId                               = useRef();
 	const pageRef                               = useRef();
 
@@ -130,13 +133,21 @@ const App: () => Node = () => {
 		}
 	}
 
-	function pointsDistance ({point1, point2}) {
+	function pointsDistance (point1, point2) {
 		let metres = getPreciseDistance(
 			{ latitude: point1.coords.latitude, longitude: point1.coords.longitude },
 			{ latitude: point2.coords.latitude, longitude: point2.coords.longitude },
 			0.1
 		);
 		return metres / 1609.34;
+	}
+
+	function getDistanceFromTrack () {
+		let distance = 0;
+		for (let i=1; i < trackRef.current.length; i++) {
+			distance += pointsDistance (trackRef.current[i - 1], trackRef.current [i]);
+		}
+		return distance;
 	}
 
 	async function hasLocationPermission () {
@@ -169,7 +180,6 @@ const App: () => Node = () => {
 
 		Geolocation.getCurrentPosition(
 			(position) => {
-				console.log ("Geolocation.getCurrentPosition : ", position);
 				setCurrentLocation (position);
 			},
 			(error) => {
@@ -187,8 +197,21 @@ const App: () => Node = () => {
 
 		watchId.current = Geolocation.watchPosition(
 			(position) => {
-				console.log ("Geolocation.watchPosition : ", position);
+
 				setCurrentLocation (position);
+				let currentTrack = trackRef.current.slice();
+				currentTrack.push (position);
+
+				// Update the track ref not the state, as the state is closed when entering this
+				// function, and we need it to keep being updated depending on previous values.
+				// Other states are fine to set here, as they only have one value.
+				//
+				// https://stackoverflow.com/questions/62806541/how-to-solve-the-react-hook-closure-issue
+				//
+				trackRef.current = currentTrack;
+
+				let thisTrackDistance = getDistanceFromTrack (currentTrack);
+				setTrackDistance (thisTrackDistance);
 			},
 			(error) => {
 				console.log ("Geolocation.watchPosition : error : ", error);
@@ -258,7 +281,7 @@ const App: () => Node = () => {
 					</TouchableOpacity>
 				</View>
 				<View style={styles.centeredView}>
-					<Text style={styles.title}>{distance} {units}</Text>
+					<Text style={styles.title}>{trackDistance} {units}</Text>
 					<Text style={styles.title}>{timeTaken} seconds</Text>
 					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
