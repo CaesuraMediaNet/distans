@@ -68,12 +68,12 @@ const App: () => Node = () => {
 
 	const [showSettings, setShowSettings]       = useState(false);
 	const [timeTaken, setTimeTaken]             = useState(0);
-	const [units, setUnits]                     = useState('miles');
+	const [units, setUnits]                     = useState('cm');
 	const [action, setAction]                   = useState('stop');
 	const [intervalId, setIntervalId]           = useState('stop');
 	const [currentLocation, setCurrentLocation] = useState(null);
-	const [track,setTrack]                      = useState([]);
-	const [trackDistance, setTrackDistance]     = useState(0);
+	const [trackDistance, setTrackDistance]     = useState("0.00");
+	const [speed, setSpeed]                     = useState('');
 
 	// Tracks are updated within a 
 	const trackRef                              = useRef([]);
@@ -139,7 +139,7 @@ const App: () => Node = () => {
 			{ latitude: point2.coords.latitude, longitude: point2.coords.longitude },
 			0.1
 		);
-		return metres / 1609.34;
+		return metres;
 	}
 
 	function getDistanceFromTrack () {
@@ -211,7 +211,16 @@ const App: () => Node = () => {
 				trackRef.current = currentTrack;
 
 				let thisTrackDistance = getDistanceFromTrack (currentTrack);
-				setTrackDistance (thisTrackDistance);
+				if (thisTrackDistance < 1) {
+					thisTrackDistance = thisTrackDistance * 100;
+					setUnits ('cm');
+				} else if (thisTrackDistance > 1 && thisTrackDistance < 1609.34) {
+					setUnits ('meters');
+				} else {
+					thisTrackDistance = thisTrackDistance / 1609.34;
+					setUnits ('miles');
+				}
+				setTrackDistance (thisTrackDistance.toFixed (2));
 			},
 			(error) => {
 				console.log ("Geolocation.watchPosition : error : ", error);
@@ -238,13 +247,34 @@ const App: () => Node = () => {
 		});
 	};
 
-	function onStartPress () {
-		setAction ('start');
+	function calculateSpeed () {
+		let speed     = '';
+		let speedText = 'calculating...';
+		if (units === "cm") {
+			speed     = trackDistance / timeTaken;          // cm/s
+			speedText = `Speed : ${speed.toFixed (2)} cm/second`;
+		} else if (units === 'meters') {
+			speed     = trackDistance / timeTaken;          // m/s
+			speedText = `Speed : ${speed.toFixed (2)} meters/second`;
+		} else {
+			speed     = trackDistance / (timeTaken * 3600);   // mph;
+			speedText = `Speed : ${speed.toFixed (2)} mph`;
+		}
+		setSpeed (speedText);
+	}
+	function onStartPress  () {
+		setAction          ('start');
+		setTrackDistance   (0);
+		setUnits           ('cm');
+		trackRef.current = [];
+		getCurrentLocation ();
+		setTimeTaken       (0);
 		getLocationUpdates ();
 	}
 	function onStopPress () {
 		setAction ('stop');
 		stopLocationUpdates ();
+		calculateSpeed ();
 	}
 
 	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
@@ -274,7 +304,8 @@ const App: () => Node = () => {
 				</View>
 				<View>
 					<TouchableOpacity
-						style={styles.button}
+						disabled={action === 'start'}
+						style={action === 'start' ? styles.buttonInactive : styles.button}
 						onPress={() => onStartPress()}
 					>
 						<Text style={styles.buttonText}>Start</Text>
@@ -282,13 +313,17 @@ const App: () => Node = () => {
 				</View>
 				<View style={styles.centeredView}>
 					<Text style={styles.title}>{trackDistance} {units}</Text>
-					<Text style={styles.title}>{timeTaken} seconds</Text>
+					<Text style={styles.title}>
+						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
+					</Text>
 					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
+					<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
 				</View>
 				<View>
 					<TouchableOpacity
-						style={styles.button}
+						disabled={action === 'stop'}
+						style={action === 'stop' ? styles.buttonInactive : styles.button}
 						onPress={() => onStopPress()}
 					>
 						<Text style={styles.buttonText}>Stop</Text>

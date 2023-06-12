@@ -69,6 +69,16 @@ export default styles = StyleSheet.create({
         elevation         : 3,
         backgroundColor   : '#d018ec',
     },
+    buttonInactive        : {
+        alignItems        : 'center',
+        justifyContent    : 'center',
+        paddingVertical   : 12,
+        paddingHorizontal : 32,
+        borderRadius      : 7,
+        elevation         : 3,
+        backgroundColor   : '#d018ec',
+		opacity           : 0.5,
+    },
     buttonText            : {
         fontSize          : 16,
         lineHeight        : 21,
@@ -117,6 +127,7 @@ export default styles = StyleSheet.create({
 		justifyContent    : 'center',
 		alignItems        : 'center',
 		marginTop         : 22,
+		marginBottom      : 22,
 	},
 	modalView             : {
 		margin            : 20,
