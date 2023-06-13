@@ -312,27 +312,30 @@ const App: () => Node = () => {
 		});
 		const barChartHeight = 100;
 		return (
-			<View style={{flex : 1, flexDirection : 'row'}}>
+			<>
+			<Text style={styles.bigText}>History</Text>
+			<View style={{flex : 1, flexDirection : 'row', borderWidth : 1, borderRadius : 5, borderColor : "#d018ec", padding : 5}}>
 				{history.map ((track, index) => (
 					<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
-						<Text>{track.distance}</Text>
+						<Text style={{fontSize : 10}}>{track.distance}</Text>
 						<View style={{
 							backgroundColor : 'white',
-							width           : 45,
+							width           : (Dimensions.get('window').width / history.length) - 25,
 							height          : barChartHeight - (barChartHeight * (track.distance / maxDistance))
 						}}>
 						</View>
 						<View style={{
-							backgroundColor : 'green',
-							width           : 45,
+							backgroundColor : '#d018ec',
+							width           : (Dimensions.get('window').width / history.length) - 25,
 							height          : barChartHeight * (track.distance / maxDistance) }}
 						>
 						</View>
-						<Text>{track.date}</Text>
+						<Text style={{fontSize : 10}}>{track.date}</Text>
 					</View>
 				))}
 			</View>
-			)
+			</>
+		);
 	}
 
 	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
@@ -387,12 +390,12 @@ const App: () => Node = () => {
 						<Text style={styles.buttonText}>Stop</Text>
 					</TouchableOpacity>
 				</View>
+				<HistoryBarChart />
 				{history.map ((track, index) => (
 					<Text key={index} style={styles.medText}>
 						{track.date} :  {track.distance} {track.units} : {track.time} seconds : {track.speed}
 					</Text>
 				))}
-			<HistoryBarChart />
 			</ScrollView>
 		</SafeAreaView>
   );
