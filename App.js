@@ -27,6 +27,7 @@ import {
 	Platform,
 	ToastAndroid,
 	PermissionsAndroid,
+	Dimensions,
 } from 'react-native';
 
 // FontAwesome.
@@ -47,6 +48,16 @@ import {
 //
 // https://www.npmjs.com/package/react-native-drop-shadow
 import SplashScreen   from 'react-native-splash-screen';
+/*
+import {
+	LineChart,
+	BarChart,
+	PieChart,
+	ProgressChart,
+	ContributionGraph,
+	StackedBarChart
+}                     from "react-native-chart-kit";
+*/
 
 // GeoLoc et al.
 //
@@ -294,6 +305,35 @@ const App: () => Node = () => {
 		currentHistory.push (thisTrack);
 		setHistory (currentHistory);
 	}
+	function HistoryBarChart () {
+		let maxDistance = 0.00;
+		history.forEach ((track, index) => {
+			if (maxDistance < track.distance) maxDistance = track.distance;
+		});
+		const barChartHeight = 100;
+		return (
+			<View style={{flex : 1, flexDirection : 'row'}}>
+				{history.map ((track, index) => (
+					<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
+						<Text>{track.distance}</Text>
+						<View style={{
+							backgroundColor : 'white',
+							width           : 45,
+							height          : barChartHeight - (barChartHeight * (track.distance / maxDistance))
+						}}>
+						</View>
+						<View style={{
+							backgroundColor : 'green',
+							width           : 45,
+							height          : barChartHeight * (track.distance / maxDistance) }}
+						>
+						</View>
+						<Text>{track.date}</Text>
+					</View>
+				))}
+			</View>
+			)
+	}
 
 	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
 	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
@@ -352,6 +392,7 @@ const App: () => Node = () => {
 						{track.date} :  {track.distance} {track.units} : {track.time} seconds : {track.speed}
 					</Text>
 				))}
+			<HistoryBarChart />
 			</ScrollView>
 		</SafeAreaView>
   );
