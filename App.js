@@ -81,7 +81,7 @@ const App: () => Node = () => {
 
 	const [showSettings, setShowSettings]       = useState(false);
 	const [timeTaken, setTimeTaken]             = useState(0);
-	const [units, setUnits]                     = useState('cm');
+	const [units, setUnits]                     = useState('miles');
 	const [action, setAction]                   = useState('stop');
 	const [intervalId, setIntervalId]           = useState(0);
 	const [currentLocation, setCurrentLocation] = useState(null);
@@ -159,11 +159,15 @@ const App: () => Node = () => {
 	}
 
 	function getDistanceFromTrack () {
-		let distance = 0;
+		let meters = 0;
 		for (let i=1; i < trackRef.current.length; i++) {
-			distance += pointsDistance (trackRef.current[i - 1], trackRef.current [i]);
+			meters += pointsDistance (trackRef.current[i - 1], trackRef.current [i]);
 		}
-		return distance;
+		if (units === 'miles') {
+			return meters / 1609.34;
+		} else {
+			return meters / 1000.00;
+		}
 	}
 
 	async function hasLocationPermission () {
@@ -227,16 +231,7 @@ const App: () => Node = () => {
 				trackRef.current = currentTrack;
 
 				let thisTrackDistance = getDistanceFromTrack (currentTrack);
-				if (thisTrackDistance < 1) {
-					thisTrackDistance = thisTrackDistance * 100;
-					setUnits ('cm');
-				} else if (thisTrackDistance > 1 && thisTrackDistance < 1609.34) {
-					setUnits ('meters');
-				} else {
-					thisTrackDistance = thisTrackDistance / 1609.34;
-					setUnits ('miles');
-				}
-				setTrackDistance (thisTrackDistance.toFixed (2));
+				setTrackDistance (thisTrackDistance.toFixed (5));
 			},
 			(error) => {
 				console.log ("Geolocation.watchPosition : error : ", error);
@@ -265,24 +260,14 @@ const App: () => Node = () => {
 
 	function calculateSpeed () {
 		let speed     = '';
-		let speedText = 'calculating...';
-		if (units === "cm") {
-			speed     = trackDistance / timeTaken;          // cm/s
-			speedText = `Speed : ${speed.toFixed (2)} cm/second`;
-		} else if (units === 'meters') {
-			speed     = trackDistance / timeTaken;          // m/s
-			speedText = `Speed : ${speed.toFixed (2)} meters/second`;
-		} else {
-			speed     = trackDistance / (timeTaken * 3600);   // mph;
-			speedText = `Speed : ${speed.toFixed (2)} mph`;
-		}
+		speed         = trackDistance / (timeTaken * 3600);
+		let speedText = `Speed : ${speed.toFixed (5)} ${units} per hour`;
 		setSpeed (speedText);
 		return speedText;
 	}
 	function onStartPress  () {
 		setAction          ('start');
-		setTrackDistance   ("0.00");
-		setUnits           ('cm');
+		setTrackDistance   ("0.00000");
 		trackRef.current = [];
 		getCurrentLocation ();
 		setTimeTaken       (0);
@@ -305,35 +290,63 @@ const App: () => Node = () => {
 		currentHistory.push (thisTrack);
 		setHistory (currentHistory);
 	}
-	function HistoryBarChart () {
+	function getBarHeights (track) {
 		let maxDistance = 0.00;
 		history.forEach ((track, index) => {
 			if (maxDistance < track.distance) maxDistance = track.distance;
 		});
 		const barChartHeight = 100;
+		const whiteHeight    = barChartHeight - (barChartHeight * (track.distance / maxDistance))
+		const colourHeight   = barChartHeight * (track.distance / maxDistance)
+		return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
+	}
+	function getBarWidth () {
+		let width = (Dimensions.get('window').width / history.length) - 25;
+		if (width > 35) width = 35;
+		return width;
+	}
+	function getBarChartWidth () {
+		let width = Dimensions.get('window').width - 25;
+		if (history.length > (Dimensions.get('window').width / 35)) {
+			width = history.length * 35;
+		}
+		return width;
+	}
+
+	function HistoryBarChart () {
 		return (
 			<>
 			<Text style={styles.bigText}>History</Text>
-			<View style={{flex : 1, flexDirection : 'row', borderWidth : 1, borderRadius : 5, borderColor : "#d018ec", padding : 5}}>
-				{history.map ((track, index) => (
-					<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
-						<Text style={{fontSize : 10}}>{track.distance}</Text>
-						<View style={{
-							backgroundColor : 'white',
-							width           : (Dimensions.get('window').width / history.length) - 25,
-							height          : barChartHeight - (barChartHeight * (track.distance / maxDistance))
-						}}>
+			<ScrollView horizontal={true}>
+				<View style={{
+					flex : 1,
+					flexDirection : 'row',
+					borderWidth   : 1,
+					borderRadius  : 5,
+					borderColor   : "#d018ec",
+					padding       : 5,
+					width         : getBarChartWidth (),
+				}}>
+					{history.map ((track, index) => (
+						<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
+							<Text style={{fontSize : 10}}>{track.distance}</Text>
+							<View style={{
+								backgroundColor : 'white',
+								width           : getBarWidth (),
+								height          : getBarHeights(track).whiteHeight,
+							}}>
+							</View>
+							<View style={{
+								backgroundColor : '#d018ec',
+								width           : getBarWidth (),
+								height          : getBarHeights(track).colourHeight,
+							}}>
+							</View>
+							<Text style={{fontSize : 10}}>{track.date}</Text>
 						</View>
-						<View style={{
-							backgroundColor : '#d018ec',
-							width           : (Dimensions.get('window').width / history.length) - 25,
-							height          : barChartHeight * (track.distance / maxDistance) }}
-						>
-						</View>
-						<Text style={{fontSize : 10}}>{track.date}</Text>
-					</View>
-				))}
-			</View>
+					))}
+				</View>
+			</ScrollView>
 			</>
 		);
 	}
@@ -390,7 +403,7 @@ const App: () => Node = () => {
 						<Text style={styles.buttonText}>Stop</Text>
 					</TouchableOpacity>
 				</View>
-				<HistoryBarChart />
+				{history.length > 0 && <HistoryBarChart />}
 				{history.map ((track, index) => (
 					<Text key={index} style={styles.medText}>
 						{track.date} :  {track.distance} {track.units} : {track.time} seconds : {track.speed}
