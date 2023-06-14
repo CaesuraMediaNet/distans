@@ -420,7 +420,7 @@ const App: () => Node = () => {
 					<TouchableOpacity
 						onPress={() => showSettingsPage ()}
 					>
-						<FontAwesomeIcon  color={'dimgray'} size={35} icon={faGear} />
+						<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faGear} />
 					</TouchableOpacity>
 				</View>
 				<View>
@@ -454,12 +454,12 @@ const App: () => Node = () => {
 				{history.length > 0 && <TouchableOpacity
 					onPress={() => clearHistory ()}
 				>
-					<FontAwesomeIcon  color={'dimgray'} size={35} icon={faTrash} />
+					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faTrash} />
 					<Text>Clear History</Text>
 				</TouchableOpacity>
 				}
 			</ScrollView>
 		</SafeAreaView>
-  );
+	);
 };
 export default App;
