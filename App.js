@@ -44,6 +44,10 @@ import {
 	faPlay,
 	faGear,
 	faTrash,
+	faCalendar,
+	faHouse,
+	faCircleDot,
+	faFloppyDisk,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Other community libs.
@@ -87,7 +91,6 @@ const historyWidthOffset = 25;
 //
 const App: () => Node = () => {
 
-	const [showSettings, setShowSettings]       = useState(false);
 	const secondsSinceEpoch = Math.round(Date.now() / 1000);
 	const [startTimeS, setStartTimeS]           = useState(secondsSinceEpoch);
 	const [timeTaken, setTimeTaken]             = useState(0);
@@ -100,6 +103,8 @@ const App: () => Node = () => {
 	const [history, setHistory]                 = useState ([]);
 	const [showSaveModal, setShowSaveModal]     = useState (false);
 	const [comment, setComment]                 = useState('');
+	const [historyPage, setHistoryPage]         = useState(false);
+	const [settingsPage, setSettingsPage]       = useState(false);
 
 	const trackRef                              = useRef([]);
 	const watchId                               = useRef();
@@ -152,9 +157,6 @@ const App: () => Node = () => {
 		return () => {stopLocationUpdates()}
 	}, []);
 
-	function showSettingsPage () {
-		setShowSettings (true);
-	}
 
 	function stopLocationUpdates () {
 		VIForegroundService.getInstance()
@@ -278,7 +280,7 @@ const App: () => Node = () => {
 
 	function calculateSpeed () {
 		let speed     = '';
-		speed         = trackDistance / (timeTaken * 3600);
+		speed         = 3600 * (trackDistance / timeTaken );
 		let speedText = `Speed : ${speed.toFixed (5)} ${units.charAt(0)}ph`;
 		setSpeed (speedText);
 		return speedText;
@@ -406,6 +408,151 @@ const App: () => Node = () => {
 		await clearTracks();
 		setHistory ([]);
 	}
+	function showHistoryPage () {
+		setHistoryPage(true);
+		setSettingsPage(false);
+	}
+	function showMainPage () {
+		setHistoryPage(false);
+		setSettingsPage(false);
+	}
+	function showSettingsPage () {
+		setSettingsPage(true);
+		setHistoryPage(false);
+	}
+	function Header ({ page }) {
+		return (
+			<View style={[styles.spaceBetween, styles.greenBox]}>
+				<Image
+					source={require ("./src/assets/images/distans-icon.png")}
+					style={styles.logoImage}
+				/>
+				<Text style={styles.title}>
+					DistanS
+				</Text>
+				{page.match(/main|history/) &&
+				<TouchableOpacity
+					onPress={() => showSettingsPage ()}
+				>
+					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faGear} />
+				</TouchableOpacity>
+				}
+				{page.match(/main|settings/) &&
+				<TouchableOpacity
+					onPress={() => showHistoryPage ()}
+				>
+					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faCalendar} />
+				</TouchableOpacity>
+				}
+				{page.match(/history|settings/) &&
+				<TouchableOpacity
+					onPress={() => showMainPage ()}
+				>
+					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faHouse} />
+				</TouchableOpacity>
+				}
+			</View>
+		);
+	}
+
+	function MainPage () {
+		return (
+			<>
+			<Header page={'main'}/>
+			<View>
+				<TouchableOpacity
+					disabled={action === 'start'}
+					style={action === 'start' ? styles.buttonInactive : styles.button}
+					onPress={() => onStartPress()}
+				>
+					<Text style={styles.buttonText}>Start</Text>
+				</TouchableOpacity>
+			</View>
+			<View style={styles.centeredView}>
+				<Text style={styles.title}>{trackDistance} {units}</Text>
+				<Text style={styles.title}>
+					{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
+				</Text>
+				<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
+				<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
+				<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
+			</View>
+			<View>
+				<TouchableOpacity
+					disabled={action === 'stop'}
+					style={action === 'stop' ? styles.buttonInactive : styles.button}
+					onPress={() => onStopPress()}
+				>
+					<Text style={styles.buttonText}>Stop</Text>
+				</TouchableOpacity>
+			</View>
+			{showSaveModal && <SaveModal
+				setShowSaveModal={setShowSaveModal}
+				saveTrack={saveTrack}
+			/>}
+			</>
+		)
+	}
+	function HistoryPage () {
+		return (
+			<>
+			<Header page={'history'} />
+			<HistoryBarChart />
+			<TouchableOpacity
+				onPress={() => clearHistory ()}
+			>
+				<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faTrash} />
+				<Text>Clear History</Text>
+			</TouchableOpacity>
+			</>
+		);
+	}
+	function SettingsPage () {
+		const [selected, setSelected] = useState (units);
+		function saveUnits () {
+			setUnits(selected);
+			showMainPage ();
+		}
+		return (
+			<>
+			<Header page={'settings'} />
+			<View style={{marginTop : '33%', flex : 1, justifyContent : 'space-around', alignItems : 'center', flexDirection : 'row'}}>
+				<TouchableOpacity
+					onPress={() => setSelected('miles')}
+				>
+					<FontAwesomeIcon 
+						style={{alignSelf : 'center'}}
+						color={selected === 'miles' ? '#d018ec' : 'dimgray'}
+						size={50}
+						icon={faCircleDot}
+					/>
+					<Text>Miles</Text>
+				</TouchableOpacity>
+				<TouchableOpacity
+					onPress={() => setSelected('km')}
+				>
+					<FontAwesomeIcon
+						style={{alignSelf : 'center'}}
+						color={selected === 'km' ? '#d018ec' : 'dimgray'}
+						size={50}
+						icon={faCircleDot}
+					/>
+					<Text>Kilometers</Text>
+				</TouchableOpacity>
+			</View>
+			<View
+				style={{marginTop : '33%'}}
+			>
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => saveUnits()}
+				>
+					<Text style={styles.buttonText}>Save</Text>
+				</TouchableOpacity>
+			</View>
+			</>
+		);
+	}
 
 	// See ~/BUILD/tracksr/src/App.tsx for what I did before and c/w
 	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
@@ -418,59 +565,15 @@ const App: () => Node = () => {
 				keyboardShouldPersistTaps='handled'
 				ref={pageRef}
 			>
-				<View style={[styles.spaceBetween, styles.greenBox]}>
-					<Image
-						source={require ("./src/assets/images/distans-icon.png")}
-						style={styles.logoImage}
-					/>
-					<Text style={styles.title}>
-						DistanS
-					</Text>
-					<TouchableOpacity
-						onPress={() => showSettingsPage ()}
-					>
-						<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faGear} />
-					</TouchableOpacity>
-				</View>
-				<View>
-					<TouchableOpacity
-						disabled={action === 'start'}
-						style={action === 'start' ? styles.buttonInactive : styles.button}
-						onPress={() => onStartPress()}
-					>
-						<Text style={styles.buttonText}>Start</Text>
-					</TouchableOpacity>
-				</View>
-				<View style={styles.centeredView}>
-					<Text style={styles.title}>{trackDistance} {units}</Text>
-					<Text style={styles.title}>
-						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
-					</Text>
-					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
-					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
-					<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
-				</View>
-				<View>
-					<TouchableOpacity
-						disabled={action === 'stop'}
-						style={action === 'stop' ? styles.buttonInactive : styles.button}
-						onPress={() => onStopPress()}
-					>
-						<Text style={styles.buttonText}>Stop</Text>
-					</TouchableOpacity>
-				</View>
-				{history.length > 0 && <HistoryBarChart />}
-				{history.length > 0 && <TouchableOpacity
-					onPress={() => clearHistory ()}
-				>
-					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faTrash} />
-					<Text>Clear History</Text>
-				</TouchableOpacity>
-				}
-				{showSaveModal && <SaveModal
-					setShowSaveModal={setShowSaveModal}
-					saveTrack={saveTrack}
-				/>}
+				{historyPage ? (
+					<HistoryPage />
+				) : (
+					settingsPage ? (
+						<SettingsPage />
+					) : (
+						<MainPage />
+					)
+				)}
 			</ScrollView>
 		</SafeAreaView>
 	);
