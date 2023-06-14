@@ -10,8 +10,9 @@ import React from 'react';
 import { useState }  from 'react';
 import { useEffect } from 'react';
 import { useRef }    from 'react';
-
+import { memo }      from 'react';
 import type {Node}   from 'react';
+
 import {
 	SafeAreaView,
 	ScrollView,
@@ -42,6 +43,7 @@ import {
 	faMinus,
 	faPlay,
 	faGear,
+	faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Other community libs.
@@ -75,11 +77,18 @@ import {
 	clearTracks,
 }                   from './functions/savedTracks';
 
+// Constants.
+//
+const minHistoryBarWidth = 65;
+const historyWidthOffset = 25;
+
 // The Distans App.
 //
 const App: () => Node = () => {
 
 	const [showSettings, setShowSettings]       = useState(false);
+	const secondsSinceEpoch = Math.round(Date.now() / 1000);
+	const [startTimeS, setStartTimeS]           = useState(secondsSinceEpoch);
 	const [timeTaken, setTimeTaken]             = useState(0);
 	const [units, setUnits]                     = useState('miles');
 	const [action, setAction]                   = useState('stop');
@@ -89,10 +98,10 @@ const App: () => Node = () => {
 	const [speed, setSpeed]                     = useState('');
 	const [history, setHistory]                 = useState ([]);
 
-	// Tracks are updated within a 
 	const trackRef                              = useRef([]);
 	const watchId                               = useRef();
 	const pageRef                               = useRef();
+	const scrollRef                             = useRef();
 
 	const geoConfig = {
 		acuracy : {
@@ -112,7 +121,13 @@ const App: () => Node = () => {
 		console.log ("useEffect : action=", action);
 		SplashScreen.hide();
 		function updateTimer () {
-			setTimeTaken ((setTimeTaken) => setTimeTaken + 1);
+
+			// When the phone is off and the App is running the timer seems to stop, so get the 
+			// timeTaken from date differences.
+			//
+			const secondsSinceEpoch = Math.round(Date.now() / 1000);
+			const secondsElapsed    = secondsSinceEpoch - startTimeS;
+			setTimeTaken (secondsElapsed);
 		}
 		if (action === "stop") {
 			clearInterval (intervalId);
@@ -261,7 +276,7 @@ const App: () => Node = () => {
 	function calculateSpeed () {
 		let speed     = '';
 		speed         = trackDistance / (timeTaken * 3600);
-		let speedText = `Speed : ${speed.toFixed (5)} ${units} per hour`;
+		let speedText = `Speed : ${speed.toFixed (5)} ${units.charAt(0)}ph`;
 		setSpeed (speedText);
 		return speedText;
 	}
@@ -270,13 +285,15 @@ const App: () => Node = () => {
 		setTrackDistance   ("0.00000");
 		trackRef.current = [];
 		getCurrentLocation ();
+		const secondsSinceEpoch = Math.round(Date.now() / 1000);
+		setStartTimeS      (secondsSinceEpoch);
 		setTimeTaken       (0);
 		getLocationUpdates ();
 	}
 	async function onStopPress () {
-		setAction ('stop');
-		stopLocationUpdates ();
-		let thisSpeed = calculateSpeed ();
+		setAction('stop');
+		stopLocationUpdates();
+		let thisSpeed      = calculateSpeed();
 		let currentHistory = history.slice();
 		let thisTrack = {
 			date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
@@ -285,41 +302,67 @@ const App: () => Node = () => {
 			units     : units,
 			speed     : thisSpeed,
 		};
-		await addTrack (thisTrack);
-
-		currentHistory.push (thisTrack);
-		setHistory (currentHistory);
+		if (trackDistance > 0.0) {
+			await addTrack (thisTrack);
+			currentHistory.push (thisTrack);
+			setHistory (currentHistory);
+		}
 	}
+
+	// Bar chart calcs - using flexbox to draw one to my design, other graph libs aren't
+	// very flexible.
+	//
 	function getBarHeights (track) {
 		let maxDistance = 0.00;
 		history.forEach ((track, index) => {
 			if (maxDistance < track.distance) maxDistance = track.distance;
 		});
-		const barChartHeight = 100;
-		const whiteHeight    = barChartHeight - (barChartHeight * (track.distance / maxDistance))
-		const colourHeight   = barChartHeight * (track.distance / maxDistance)
-		return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
+		if (maxDistance > 0.0) {
+			const barChartHeight = 100;
+			const whiteHeight    = barChartHeight - (barChartHeight * (track.distance / maxDistance))
+			const colourHeight   = barChartHeight * (track.distance / maxDistance)
+			return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
+		} else {
+			return ({whiteHeight : 1, colourHeight : 1});
+		}
 	}
 	function getBarWidth () {
-		let width = (Dimensions.get('window').width / history.length) - 25;
-		if (width > 35) width = 35;
-		return width;
+		if (history.length > 0) {
+			let width = (Dimensions.get('window').width / history.length);
+			if (width > minHistoryBarWidth) width = minHistoryBarWidth;
+			return width;
+		} else {
+			return minHistoryBarWidth;
+		}
 	}
 	function getBarChartWidth () {
-		let width = Dimensions.get('window').width - 25;
-		if (history.length > (Dimensions.get('window').width / 35)) {
-			width = history.length * 35;
+		if (history.length > 0) {
+			let width = Dimensions.get('window').width - historyWidthOffset;
+			if (history.length > (Dimensions.get('window').width / minHistoryBarWidth)) {
+				width = history.length * minHistoryBarWidth;
+			}
+			return width;
+		} else {
+			return Dimensions.get('window').width - historyWidthOffset;
 		}
-		return width;
 	}
-
+	function scrollToEnd () {
+		if (action === 'stop') {
+			scrollRef.current.scrollToEnd({ animated: true });
+		}
+	}
 	function HistoryBarChart () {
 		return (
 			<>
 			<Text style={styles.bigText}>History</Text>
-			<ScrollView horizontal={true}>
+			<ScrollView
+				ref={scrollRef}
+				horizontal={true}
+				persistentScrollbar={true}
+				onContentSizeChange={() => scrollToEnd()}
+			>
 				<View style={{
-					flex : 1,
+					flex          : 1,
 					flexDirection : 'row',
 					borderWidth   : 1,
 					borderRadius  : 5,
@@ -329,7 +372,7 @@ const App: () => Node = () => {
 				}}>
 					{history.map ((track, index) => (
 						<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
-							<Text style={{fontSize : 10}}>{track.distance}</Text>
+							<Text style={{fontSize : 10}}>{track.distance} : {track.speed} : {track.time} seconds</Text>
 							<View style={{
 								backgroundColor : 'white',
 								width           : getBarWidth (),
@@ -350,8 +393,12 @@ const App: () => Node = () => {
 			</>
 		);
 	}
+	async function clearHistory () {
+		await clearTracks();
+		setHistory ([]);
+	}
 
-	// See /home/andyc/BUILD/tracksr/src/App.tsx for what I did before and c/w
+	// See ~/BUILD/tracksr/src/App.tsx for what I did before and c/w
 	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
 	//
 	return (
@@ -404,11 +451,13 @@ const App: () => Node = () => {
 					</TouchableOpacity>
 				</View>
 				{history.length > 0 && <HistoryBarChart />}
-				{history.map ((track, index) => (
-					<Text key={index} style={styles.medText}>
-						{track.date} :  {track.distance} {track.units} : {track.time} seconds : {track.speed}
-					</Text>
-				))}
+				{history.length > 0 && <TouchableOpacity
+					onPress={() => clearHistory ()}
+				>
+					<FontAwesomeIcon  color={'dimgray'} size={35} icon={faTrash} />
+					<Text>Clear History</Text>
+				</TouchableOpacity>
+				}
 			</ScrollView>
 		</SafeAreaView>
   );
