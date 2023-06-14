@@ -76,6 +76,7 @@ import {
 	getTracks,
 	clearTracks,
 }                   from './functions/savedTracks';
+import SaveModal    from './components/SaveModal';
 
 // Constants.
 //
@@ -97,6 +98,8 @@ const App: () => Node = () => {
 	const [trackDistance, setTrackDistance]     = useState("0.00");
 	const [speed, setSpeed]                     = useState('');
 	const [history, setHistory]                 = useState ([]);
+	const [showSaveModal, setShowSaveModal]     = useState (false);
+	const [comment, setComment]                 = useState('');
 
 	const trackRef                              = useRef([]);
 	const watchId                               = useRef();
@@ -290,9 +293,12 @@ const App: () => Node = () => {
 		setTimeTaken       (0);
 		getLocationUpdates ();
 	}
-	async function onStopPress () {
+	function onStopPress () {
 		setAction('stop');
 		stopLocationUpdates();
+		trackDistance > 0.0 && setShowSaveModal(true);
+	}
+	async function saveTrack (comment) {
 		let thisSpeed      = calculateSpeed();
 		let currentHistory = history.slice();
 		let thisTrack = {
@@ -301,6 +307,7 @@ const App: () => Node = () => {
 			time      : timeTaken,
 			units     : units,
 			speed     : thisSpeed,
+			comment   : comment,
 		};
 		if (trackDistance > 0.0) {
 			await addTrack (thisTrack);
@@ -372,7 +379,9 @@ const App: () => Node = () => {
 				}}>
 					{history.map ((track, index) => (
 						<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
-							<Text style={{fontSize : 10}}>{track.distance} : {track.speed} : {track.time} seconds</Text>
+							<Text style={{fontSize : 10}}>
+								{track.comment || 'Untitled'} : {track.distance} : {track.speed} : {track.time} seconds
+							</Text>
 							<View style={{
 								backgroundColor : 'white',
 								width           : getBarWidth (),
@@ -458,6 +467,10 @@ const App: () => Node = () => {
 					<Text>Clear History</Text>
 				</TouchableOpacity>
 				}
+				{showSaveModal && <SaveModal
+					setShowSaveModal={setShowSaveModal}
+					saveTrack={saveTrack}
+				/>}
 			</ScrollView>
 		</SafeAreaView>
 	);

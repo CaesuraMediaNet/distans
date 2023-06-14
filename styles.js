@@ -87,7 +87,7 @@ export default styles = StyleSheet.create({
 		fontFamily        : 'PTSans-Regular',
     },
 	iconStyle             : {
-        color             : 'dimgray',
+        color             : '#d018ec',
         padding           : 7,
         alignItems        : 'center',
         margin            : 1,
@@ -101,7 +101,7 @@ export default styles = StyleSheet.create({
         margin            : 1,
     },
     wonStyle              : {
-        color             : 'dimgray',
+        color             : '#d018ec',
         padding           : 7,
         opacity           : 0.6,
         alignItems        : 'center',
@@ -130,7 +130,7 @@ export default styles = StyleSheet.create({
 		marginBottom      : 22,
 	},
 	modalView             : {
-		margin            : 20,
+		margin            : 10,
 		backgroundColor   : 'white',
 		borderRadius      : 20,
 		padding           : 35,
@@ -146,11 +146,11 @@ export default styles = StyleSheet.create({
 		fontFamily        : 'PTSans-Regular',
 	},
 	buttonOpen            : {
-		backgroundColor   : '#F194FF',
+		backgroundColor   : '#d018ec',
 		fontFamily        : 'PTSans-Regular',
 	},
 	buttonClose           : {
-		backgroundColor   : '#2196F3',
+		backgroundColor   : '#d018ec',
 		fontFamily        : 'PTSans-Regular',
 	},
 	textStyle             : {
@@ -203,5 +203,13 @@ export default styles = StyleSheet.create({
 	logoImage             : {
 		width             : 35,
 		height            : 35,
+	},
+	textInput             : {
+		height            : 40,
+		width             : "100%",
+		margin            : 12,
+		borderWidth       : 1,
+		borderColor       : '#d018ec',
+		padding           : 10,
 	}
 });
