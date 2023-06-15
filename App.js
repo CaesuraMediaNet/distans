@@ -29,6 +29,7 @@ import {
 	ToastAndroid,
 	PermissionsAndroid,
 	Dimensions,
+	BackHandler,
 } from 'react-native';
 
 // FontAwesome.
@@ -138,7 +139,6 @@ const App: () => Node = () => {
 			const secondsSinceEpoch = Math.round(Date.now() / 1000);
 			const secondsElapsed    = secondsSinceEpoch - startTimeS - pausedTime;
 			setTimeTaken (secondsElapsed);
-			console.log ("pausedTime : ", pausedTime);
 		}
 		if (action === 'stop') {
 			clearInterval(intervalId);
@@ -167,6 +167,22 @@ const App: () => Node = () => {
 		return () => {stopLocationUpdates()}
 	}, []);
 
+    // https://reactnative.dev/docs/backhandler
+    //
+    useEffect(() => {
+        const backAction = () => {
+			if (!historyPage && !settingsPage) {
+				return false;
+			}
+			showMainPage();
+            return true;
+        };
+        const backHandler = BackHandler.addEventListener(
+            'hardwareBackPress',
+            () => backAction (),
+        );
+        return () => backHandler.remove();
+    },[settingsPage, historyPage]);
 
 	function stopLocationUpdates () {
 		VIForegroundService.getInstance()
@@ -434,16 +450,20 @@ const App: () => Node = () => {
 		setHistory ([]);
 	}
 	function showHistoryPage () {
-		setHistoryPage(true);
-		setSettingsPage(false);
+		if (action === 'stop') {
+			setHistoryPage(true);
+			setSettingsPage(false);
+		}
 	}
 	function showMainPage () {
 		setHistoryPage(false);
 		setSettingsPage(false);
 	}
 	function showSettingsPage () {
-		setSettingsPage(true);
-		setHistoryPage(false);
+		if (action === 'stop') {
+			setSettingsPage(true);
+			setHistoryPage(false);
+		}
 	}
 	function Header ({ page }) {
 		return (
@@ -459,14 +479,14 @@ const App: () => Node = () => {
 				<TouchableOpacity
 					onPress={() => showSettingsPage ()}
 				>
-					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faGear} />
+					<FontAwesomeIcon  color={action !== 'stop' ? 'dimgray' : '#d018ec'} size={35} icon={faGear} />
 				</TouchableOpacity>
 				}
 				{page.match(/main|settings/) &&
 				<TouchableOpacity
 					onPress={() => showHistoryPage ()}
 				>
-					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faCalendar} />
+					<FontAwesomeIcon  color={action !== 'stop' ? 'dimgray' : '#d018ec'} size={35} icon={faCalendar} />
 				</TouchableOpacity>
 				}
 				{page.match(/history|settings/) &&
@@ -551,6 +571,7 @@ const App: () => Node = () => {
 		function saveUnits () {
 			setUnits(selected);
 			showMainPage ();
+			ToastAndroid.show(`Units saved as ${selected}`, ToastAndroid.SHORT);
 		}
 		return (
 			<>
