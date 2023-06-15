@@ -105,6 +105,8 @@ const App: () => Node = () => {
 	const [comment, setComment]                 = useState('');
 	const [historyPage, setHistoryPage]         = useState(false);
 	const [settingsPage, setSettingsPage]       = useState(false);
+	const [timeOfPause, setTimeOfPause]         = useState(secondsSinceEpoch);
+	const [pausedTime, setPausedTime]           = useState(0);
 
 	const trackRef                              = useRef([]);
 	const watchId                               = useRef();
@@ -134,17 +136,20 @@ const App: () => Node = () => {
 			// timeTaken from date differences.
 			//
 			const secondsSinceEpoch = Math.round(Date.now() / 1000);
-			const secondsElapsed    = secondsSinceEpoch - startTimeS;
+			const secondsElapsed    = secondsSinceEpoch - startTimeS - pausedTime;
 			setTimeTaken (secondsElapsed);
+			console.log ("pausedTime : ", pausedTime);
 		}
 		if (action === 'stop') {
-			clearInterval (intervalId);
+			clearInterval(intervalId);
+			setPausedTime(0);
 		} else if (action === 'start') {
 			setTimeTaken (0);
 			let thisIntervalId = setInterval (updateTimer, 1000);
-			setIntervalId (thisIntervalId);
+			setIntervalId(thisIntervalId);
 		} else if (action === 'pause') {
-			clearInterval (intervalId);
+			clearInterval(intervalId);
+			setTimeOfPause(Math.round(Date.now() / 1000));
 		} else if (action === 'restart') {
 			let thisIntervalId = setInterval (updateTimer, 1000);
 			setIntervalId (thisIntervalId);
@@ -303,12 +308,17 @@ const App: () => Node = () => {
 	function onPausePress () {
 		setAction          ('pause');
 		stopLocationUpdates();
-		// AKJC HERE : Do something with setStartTimeS and setTimeTaken etc to not take into account paused
-		// AKJC HERE : time.
 	}
 	function onReStartPress () {
 		setAction          ('restart');
 		getLocationUpdates ();
+
+		// pausedTime increases on every pause, there maybe more than one pause in a journey/route/track.
+		// pausedTime is the number of seconds the user pauses before restart which, initially 0, gets 
+		// subtracted from the timeTaken in updateTimer above.
+		//
+		let now = Math.round(Date.now() / 1000);
+		setPausedTime ((pausedTime) => pausedTime + now - timeOfPause);
 	}
 	function onStopPress () {
 		setAction('stop');
@@ -482,28 +492,12 @@ const App: () => Node = () => {
 					<Text style={styles.buttonText}>Start</Text>
 				</TouchableOpacity>
 			</View>}
-			{action === 'start' && <View>
+			{action.match(/start|pause/) && <View>
 				<TouchableOpacity
 					style={styles.button}
 					onPress={() => onStopPress()}
 				>
 					<Text style={styles.buttonText}>Stop</Text>
-				</TouchableOpacity>
-			</View>}
-			{action.match(/AKJC HERE start/) && <View>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => onPausePress()}
-				>
-					<Text style={styles.buttonText}>Pause</Text>
-				</TouchableOpacity>
-			</View>}
-			{action === 'AKJC HERE pause' && <View>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => onReStartPress()}
-				>
-					<Text style={styles.buttonText}>Restart</Text>
 				</TouchableOpacity>
 			</View>}
 			<View style={styles.centeredView}>
@@ -515,6 +509,22 @@ const App: () => Node = () => {
 				<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
 				<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
 			</View>
+			{action.match(/start/) && <View>
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => onPausePress()}
+				>
+					<Text style={styles.buttonText}>Pause</Text>
+				</TouchableOpacity>
+			</View>}
+			{action === 'pause' && <View>
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => onReStartPress()}
+				>
+					<Text style={styles.buttonText}>Restart</Text>
+				</TouchableOpacity>
+			</View>}
 			{showSaveModal && <SaveModal
 				setShowSaveModal={setShowSaveModal}
 				saveTrack={saveTrack}
