@@ -459,7 +459,7 @@ const App: () => Node = () => {
 		return (
 			<>
 			<Header page={'main'}/>
-			<View>
+			{action === 'stop' && <View>
 				<TouchableOpacity
 					disabled={action === 'start'}
 					style={action === 'start' ? styles.buttonInactive : styles.button}
@@ -467,7 +467,16 @@ const App: () => Node = () => {
 				>
 					<Text style={styles.buttonText}>Start</Text>
 				</TouchableOpacity>
-			</View>
+			</View>}
+			{action === 'start' && <View>
+				<TouchableOpacity
+					disabled={action === 'stop'}
+					style={action === 'stop' ? styles.buttonInactive : styles.button}
+					onPress={() => onStopPress()}
+				>
+					<Text style={styles.buttonText}>Stop</Text>
+				</TouchableOpacity>
+			</View>}
 			<View style={styles.centeredView}>
 				<Text style={styles.title}>{trackDistance} {units}</Text>
 				<Text style={styles.title}>
@@ -476,15 +485,6 @@ const App: () => Node = () => {
 				<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 				<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
 				<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
-			</View>
-			<View>
-				<TouchableOpacity
-					disabled={action === 'stop'}
-					style={action === 'stop' ? styles.buttonInactive : styles.button}
-					onPress={() => onStopPress()}
-				>
-					<Text style={styles.buttonText}>Stop</Text>
-				</TouchableOpacity>
 			</View>
 			{showSaveModal && <SaveModal
 				setShowSaveModal={setShowSaveModal}

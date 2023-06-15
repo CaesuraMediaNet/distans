@@ -7,6 +7,7 @@ import {
 	TouchableOpacity,
 	View,
 	TextInput,
+	ToastAndroid,
 }              from 'react-native';
 import styles  from '../styles';
 import Modal   from "react-native-modal";
@@ -16,6 +17,7 @@ export default function SaveModal ({saveTrack, setShowSaveModal}) {
 	function saveTrackAndClose () {
 		setShowSaveModal(false);
 		saveTrack(comment);
+		ToastAndroid.show('Saved!', ToastAndroid.SHORT)
 	}
   return (
     <View>
