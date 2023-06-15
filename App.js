@@ -137,10 +137,15 @@ const App: () => Node = () => {
 			const secondsElapsed    = secondsSinceEpoch - startTimeS;
 			setTimeTaken (secondsElapsed);
 		}
-		if (action === "stop") {
+		if (action === 'stop') {
 			clearInterval (intervalId);
-		} else if (action === "start") {
+		} else if (action === 'start') {
 			setTimeTaken (0);
+			let thisIntervalId = setInterval (updateTimer, 1000);
+			setIntervalId (thisIntervalId);
+		} else if (action === 'pause') {
+			clearInterval (intervalId);
+		} else if (action === 'restart') {
 			let thisIntervalId = setInterval (updateTimer, 1000);
 			setIntervalId (thisIntervalId);
 		}
@@ -296,7 +301,14 @@ const App: () => Node = () => {
 		getLocationUpdates ();
 	}
 	function onPausePress () {
-		// TBD	
+		setAction          ('pause');
+		stopLocationUpdates();
+		// AKJC HERE : Do something with setStartTimeS and setTimeTaken etc to not take into account paused
+		// AKJC HERE : time.
+	}
+	function onReStartPress () {
+		setAction          ('restart');
+		getLocationUpdates ();
 	}
 	function onStopPress () {
 		setAction('stop');
@@ -478,12 +490,20 @@ const App: () => Node = () => {
 					<Text style={styles.buttonText}>Stop</Text>
 				</TouchableOpacity>
 			</View>}
-			{action === 'tbd' && <View>
+			{action.match(/AKJC HERE start/) && <View>
 				<TouchableOpacity
 					style={styles.button}
 					onPress={() => onPausePress()}
 				>
 					<Text style={styles.buttonText}>Pause</Text>
+				</TouchableOpacity>
+			</View>}
+			{action === 'AKJC HERE pause' && <View>
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => onReStartPress()}
+				>
+					<Text style={styles.buttonText}>Restart</Text>
 				</TouchableOpacity>
 			</View>}
 			<View style={styles.centeredView}>
