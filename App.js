@@ -295,6 +295,9 @@ const App: () => Node = () => {
 		setTimeTaken       (0);
 		getLocationUpdates ();
 	}
+	function onPausePress () {
+		// TBD	
+	}
 	function onStopPress () {
 		setAction('stop');
 		stopLocationUpdates();
@@ -461,8 +464,7 @@ const App: () => Node = () => {
 			<Header page={'main'}/>
 			{action === 'stop' && <View>
 				<TouchableOpacity
-					disabled={action === 'start'}
-					style={action === 'start' ? styles.buttonInactive : styles.button}
+					style={styles.button}
 					onPress={() => onStartPress()}
 				>
 					<Text style={styles.buttonText}>Start</Text>
@@ -470,11 +472,18 @@ const App: () => Node = () => {
 			</View>}
 			{action === 'start' && <View>
 				<TouchableOpacity
-					disabled={action === 'stop'}
-					style={action === 'stop' ? styles.buttonInactive : styles.button}
+					style={styles.button}
 					onPress={() => onStopPress()}
 				>
 					<Text style={styles.buttonText}>Stop</Text>
+				</TouchableOpacity>
+			</View>}
+			{action === 'tbd' && <View>
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => onPausePress()}
+				>
+					<Text style={styles.buttonText}>Pause</Text>
 				</TouchableOpacity>
 			</View>}
 			<View style={styles.centeredView}>
