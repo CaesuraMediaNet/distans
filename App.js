@@ -99,7 +99,7 @@ const App: () => Node = () => {
 	const [action, setAction]                   = useState('stop');
 	const [intervalId, setIntervalId]           = useState(0);
 	const [currentLocation, setCurrentLocation] = useState(null);
-	const [trackDistance, setTrackDistance]     = useState("0.00");
+	const [trackDistance, setTrackDistance]     = useState("0.00000");
 	const [speed, setSpeed]                     = useState('');
 	const [history, setHistory]                 = useState ([]);
 	const [showSaveModal, setShowSaveModal]     = useState (false);
@@ -307,7 +307,7 @@ const App: () => Node = () => {
 	function calculateSpeed () {
 		let speed     = '';
 		speed         = 3600 * (trackDistance / timeTaken );
-		let speedText = `Speed : ${speed.toFixed (5)} ${units.charAt(0)}ph`;
+		let speedText = `${speed.toFixed (5)}${units.charAt(0)}ph`;
 		setSpeed (speedText);
 		return speedText;
 	}
@@ -342,17 +342,21 @@ const App: () => Node = () => {
 		trackDistance > 0.0 && setShowSaveModal(true);
 	}
 	async function saveTrack (comment) {
-		let thisSpeed      = calculateSpeed();
-		let currentHistory = history.slice();
-		let thisTrack = {
-			date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
-			distance  : trackDistance,
-			time      : timeTaken,
-			units     : units,
-			speed     : thisSpeed,
-			comment   : comment,
-		};
+
+		// Don't save a track with no miles or km in.
+		//
 		if (trackDistance > 0.0) {
+			let thisSpeed      = calculateSpeed();
+			let currentHistory = history.slice();
+
+			let thisTrack = {
+				date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
+				distance  : trackDistance,
+				time      : new Date(timeTaken * 1000).toISOString().slice(11, 19),
+				units     : units,
+				speed     : thisSpeed,
+				comment   : comment,
+			};
 			await addTrack (thisTrack);
 			currentHistory.push (thisTrack);
 			setHistory (currentHistory);
@@ -406,6 +410,7 @@ const App: () => Node = () => {
 			<>
 			<Text style={styles.bigText}>History</Text>
 			<ScrollView
+				style={{marginTop : 10, marginBottom : 20}}
 				ref={scrollRef}
 				horizontal={true}
 				persistentScrollbar={true}
@@ -421,9 +426,12 @@ const App: () => Node = () => {
 					width         : getBarChartWidth (),
 				}}>
 					{history.map ((track, index) => (
-						<View key={index} style={{flex : 1, alignSelf : 'flex-start'}}>
+						<View key={index} style={{flex : 1, alignSelf : 'flex-end'}}>
+							<Text style={{fontSize : 10, fontWeight : 'bold'}}>
+								 {track.comment || 'Untitled'} : 
+							</Text>
 							<Text style={{fontSize : 10}}>
-								{track.comment || 'Untitled'} : {track.distance} : {track.speed} : {track.time} seconds
+								{track.distance} : {track.speed} : {track.time} 
 							</Text>
 							<View style={{
 								backgroundColor : 'white',
@@ -482,7 +490,7 @@ const App: () => Node = () => {
 					<FontAwesomeIcon  color={action !== 'stop' ? 'dimgray' : '#d018ec'} size={35} icon={faGear} />
 				</TouchableOpacity>
 				}
-				{page.match(/main|settings/) &&
+				{page.match(/main|settings/) && history.length > 0 &&
 				<TouchableOpacity
 					onPress={() => showHistoryPage ()}
 				>
@@ -504,51 +512,61 @@ const App: () => Node = () => {
 		return (
 			<>
 			<Header page={'main'}/>
-			{action === 'stop' && <View>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => onStartPress()}
-				>
-					<Text style={styles.buttonText}>Start</Text>
-				</TouchableOpacity>
-			</View>}
-			{action.match(/start|pause/) && <View>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => onStopPress()}
-				>
-					<Text style={styles.buttonText}>Stop</Text>
-				</TouchableOpacity>
-			</View>}
-			<View style={styles.centeredView}>
-				<Text style={styles.title}>{trackDistance} {units}</Text>
-				<Text style={styles.title}>
-					{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
-				</Text>
-				<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
-				<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
-				<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
+			<View style={{
+				borderWidth   : 1,
+				borderRadius  : 5,
+				borderColor   : "#d018ec",
+				marginTop     : 10,
+				marginBottom  : 10,
+				paddingTop    : 10,
+				paddingBottom : 10,
+			}}>
+				{action === 'stop' && <View>
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => onStartPress()}
+					>
+						<Text style={styles.buttonText}>Start</Text>
+					</TouchableOpacity>
+				</View>}
+				{action.match(/start|pause/) && <View>
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => onStopPress()}
+					>
+						<Text style={styles.buttonText}>Stop</Text>
+					</TouchableOpacity>
+				</View>}
+				<View style={styles.centeredView}>
+					<Text style={styles.title}>{trackDistance} {units}</Text>
+					<Text style={styles.title}>
+						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
+					</Text>
+					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
+					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
+					<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
+				</View>
+				{action.match(/start/) && <View>
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => onPausePress()}
+					>
+						<Text style={styles.buttonText}>Pause</Text>
+					</TouchableOpacity>
+				</View>}
+				{action === 'pause' && <View>
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => onReStartPress()}
+					>
+						<Text style={styles.buttonText}>Restart</Text>
+					</TouchableOpacity>
+				</View>}
+				{showSaveModal && <SaveModal
+					setShowSaveModal={setShowSaveModal}
+					saveTrack={saveTrack}
+				/>}
 			</View>
-			{action.match(/start/) && <View>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => onPausePress()}
-				>
-					<Text style={styles.buttonText}>Pause</Text>
-				</TouchableOpacity>
-			</View>}
-			{action === 'pause' && <View>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => onReStartPress()}
-				>
-					<Text style={styles.buttonText}>Restart</Text>
-				</TouchableOpacity>
-			</View>}
-			{showSaveModal && <SaveModal
-				setShowSaveModal={setShowSaveModal}
-				saveTrack={saveTrack}
-			/>}
 			</>
 		)
 	}
@@ -556,13 +574,20 @@ const App: () => Node = () => {
 		return (
 			<>
 			<Header page={'history'} />
+			{history.length === 0 &&
+				<Text>No history recorded yet.</Text>
+			}
+			{history.length > 0 &&
+			<>
 			<HistoryBarChart />
 			<TouchableOpacity
+				style={styles.button}
 				onPress={() => clearHistory ()}
 			>
-				<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faTrash} />
-				<Text>Clear History</Text>
+				<Text style={styles.buttonText}>Clear History</Text>
 			</TouchableOpacity>
+			</>
+			}
 			</>
 		);
 	}
@@ -571,6 +596,7 @@ const App: () => Node = () => {
 		function saveUnits () {
 			setUnits(selected);
 			showMainPage ();
+			// AKJC HERE : change the display if stopped and showing distance and speed.
 			ToastAndroid.show(`Units saved as ${selected}`, ToastAndroid.SHORT);
 		}
 		return (
