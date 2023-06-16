@@ -431,7 +431,7 @@ const App: () => Node = () => {
 								 {track.comment || 'Untitled'} : 
 							</Text>
 							<Text style={{fontSize : 10}}>
-								{track.distance} : {track.speed} : {track.time} 
+								{track.distance}{units} : {track.speed} : {track.time} 
 							</Text>
 							<View style={{
 								backgroundColor : 'white',
