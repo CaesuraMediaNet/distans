@@ -87,32 +87,35 @@ import SaveModal    from './components/SaveModal';
 //
 const minHistoryBarWidth = 65;
 const historyWidthOffset = 25;
+const maxTrackLength     = 10; // Reduce the size of the track array so it don't get too big.
+const showClearHistory   = false;
 
 // The Distans App.
 //
 const App: () => Node = () => {
 
-	const secondsSinceEpoch = Math.round(Date.now() / 1000);
-	const [startTimeS, setStartTimeS]           = useState(secondsSinceEpoch);
-	const [timeTaken, setTimeTaken]             = useState(0);
-	const [units, setUnits]                     = useState('miles');
-	const [action, setAction]                   = useState('stop');
-	const [intervalId, setIntervalId]           = useState(0);
-	const [currentLocation, setCurrentLocation] = useState(null);
-	const [trackDistance, setTrackDistance]     = useState("0.00000");
-	const [speed, setSpeed]                     = useState('');
-	const [history, setHistory]                 = useState ([]);
-	const [showSaveModal, setShowSaveModal]     = useState (false);
-	const [comment, setComment]                 = useState('');
-	const [historyPage, setHistoryPage]         = useState(false);
-	const [settingsPage, setSettingsPage]       = useState(false);
-	const [timeOfPause, setTimeOfPause]         = useState(secondsSinceEpoch);
-	const [pausedTime, setPausedTime]           = useState(0);
+	const secondsSinceEpoch                       = Math.round(Date.now() / 1000);
+	const [startTimeS, setStartTimeS]             = useState(secondsSinceEpoch);
+	const [timeTaken, setTimeTaken]               = useState(0);
+	const [units, setUnits]                       = useState('miles');
+	const [action, setAction]                     = useState('stop');
+	const [intervalId, setIntervalId]             = useState(0);
+	const [currentLocation, setCurrentLocation]   = useState(null);
+	const [trackDistance, setTrackDistance]       = useState("0.00000");
+	const [speed, setSpeed]                       = useState('');
+	const [history, setHistory]                   = useState ([]);
+	const [showSaveModal, setShowSaveModal]       = useState (false);
+	const [comment, setComment]                   = useState('');
+	const [historyPage, setHistoryPage]           = useState(false);
+	const [settingsPage, setSettingsPage]         = useState(false);
+	const [timeOfPause, setTimeOfPause]           = useState(secondsSinceEpoch);
+	const [pausedTime, setPausedTime]             = useState(0);
 
-	const trackRef                              = useRef([]);
-	const watchId                               = useRef();
-	const pageRef                               = useRef();
-	const scrollRef                             = useRef();
+	const trackRef                                = useRef([]);
+	const destagedDistanceRef                     = useRef(0);
+	const watchId                                 = useRef();
+	const pageRef                                 = useRef();
+	const scrollRef                               = useRef();
 
 	const geoConfig = {
 		acuracy : {
@@ -264,20 +267,30 @@ const App: () => Node = () => {
 		watchId.current = Geolocation.watchPosition(
 			(position) => {
 
-				setCurrentLocation (position);
-				let currentTrack = trackRef.current.slice();
-				currentTrack.push (position);
-
 				// Update the track ref not the state, as the state is closed when entering this
 				// function, and we need it to keep being updated depending on previous values.
 				// Other states are fine to set here, as they only have one value.
 				//
 				// https://stackoverflow.com/questions/62806541/how-to-solve-the-react-hook-closure-issue
 				//
-				trackRef.current = currentTrack;
-
-				let thisTrackDistance = getDistanceFromTrack (currentTrack);
+				setCurrentLocation (position);
+				let currentTrack      = trackRef.current.slice();
+				currentTrack.push  (position);
+				
+				// Destaged distance is saved when track length gets too big, see below.
+				// And ditto the ref thing.
+				//
+				let thisTrackDistance = getDistanceFromTrack (currentTrack) + destagedDistanceRef.current;
 				setTrackDistance (thisTrackDistance.toFixed (5));
+
+				// "Destage" the track points so the array does not get too big and crash the App.
+				//
+				if (currentTrack.length > maxTrackLength) {
+					destagedDistanceRef.current = thisTrackDistance;
+					currentTrack = [];
+					currentTrack.push(position);
+				}
+				trackRef.current      = currentTrack;
 			},
 			(error) => {
 				console.log ("Geolocation.watchPosition : error : ", error);
@@ -368,13 +381,13 @@ const App: () => Node = () => {
 	//
 	function getBarHeights (track) {
 		let maxDistance = 0.00;
-		history.forEach ((track, index) => {
-			if (maxDistance < track.distance) maxDistance = track.distance;
+		history.forEach ((thisTrack, index) => {
+			if (maxDistance < thisTrack.distance) maxDistance = thisTrack.distance;
 		});
 		if (maxDistance > 0.0) {
 			const barChartHeight = 100;
-			const whiteHeight    = barChartHeight - (barChartHeight * (track.distance / maxDistance))
 			const colourHeight   = barChartHeight * (track.distance / maxDistance)
+			const whiteHeight    = barChartHeight - colourHeight;
 			return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
 		} else {
 			return ({whiteHeight : 1, colourHeight : 1});
@@ -570,6 +583,47 @@ const App: () => Node = () => {
 			</>
 		)
 	}
+	function HistoryStats () {
+		let dayHash  = {};
+		let weekHash = {};
+		history.forEach ((thisTrack, index) => {
+
+			// Tue Jun 20 16:03:59 2023
+			//
+			let day = thisTrack.date.replace (/\d\d:\d\d:\d\d /, '');
+			if (typeof dayHash[day] === "undefined") {
+				dayHash[day] = [];
+			} else {
+				dayHash[day].push (thisTrack);
+			}
+			console.log ("dayHash : ", dayHash);
+			let now        = new Date();
+			let then       = new Date(thisTrack.date);
+			let diff       = (now - then);
+			let sevenDaysS = 7 * 24 * 60 * 60 * 1000;
+			let today      = new Date().toLocaleString('en-GB', { timeZone: 'UTC' }).replace (/\d\d:\d\d:\d\d /, '');
+			let lastWeek   = new Date(now - sevenDaysS)
+				.toLocaleString('en-GB', { timeZone: 'UTC' })
+				.replace (/\d\d:\d\d:\d\d /, '');
+			let hashKey = lastWeek + " to " + today;
+			if (diff < sevenDaysS) {
+				if (typeof weekHash[hashKey] === "undefined") {
+					weekHash[hashKey] = [];
+				} else {
+					weekHash[hashKey].push(thisTrack);
+				}
+			}
+			console.log ("weekHash : ", weekHash);
+
+			// AKJC HERE : Do month, year, then add up the totals and display them.
+
+		});
+		return (
+			<View>
+				<Text>Stats TBD</Text>
+			</View>
+		);
+	}
 	function HistoryPage () {
 		return (
 			<>
@@ -578,15 +632,18 @@ const App: () => Node = () => {
 				<Text>No history recorded yet.</Text>
 			}
 			{history.length > 0 &&
-			<>
-			<HistoryBarChart />
-			<TouchableOpacity
-				style={styles.button}
-				onPress={() => clearHistory ()}
-			>
-				<Text style={styles.buttonText}>Clear History</Text>
-			</TouchableOpacity>
-			</>
+				<>
+				<HistoryBarChart />
+				{showClearHistory &&
+					<TouchableOpacity
+						style={styles.button}
+						onPress={() => clearHistory ()}
+					>
+						<Text style={styles.buttonText}>Clear History</Text>
+					</TouchableOpacity>
+				}
+				<HistoryStats />
+				</>
 			}
 			</>
 		);
