@@ -55,16 +55,6 @@ import {
 //
 // https://www.npmjs.com/package/react-native-drop-shadow
 import SplashScreen   from 'react-native-splash-screen';
-/*
-import {
-	LineChart,
-	BarChart,
-	PieChart,
-	ProgressChart,
-	ContributionGraph,
-	StackedBarChart
-}                     from "react-native-chart-kit";
-*/
 
 // GeoLoc et al.
 //
@@ -127,7 +117,7 @@ const App: () => Node = () => {
 		maximumAge           : 10000,
 		distanceFilter       : 0,
 		forceRequestLocation : true,
-		forceLocationManager : false,
+		forceLocationManager : true, // use android's default LocationManager API 
 		showLocationDialog   : true,
 	};
 
@@ -161,6 +151,7 @@ const App: () => Node = () => {
 	}, [action]);
 
 	useEffect(() => {
+		console.log ("fetchData called");
 		async function fetchData() {
 			await getCurrentLocation();
 			let currentHistory = await getTracks ();
