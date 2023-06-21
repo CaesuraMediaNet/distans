@@ -88,7 +88,6 @@ const App: () => Node = () => {
 
 	const secondsSinceEpoch                       = Math.round(Date.now() / 1000);
 	const [startTimeS, setStartTimeS]             = useState(secondsSinceEpoch);
-	const [position1,setPosition1]                = useState({});
 	const [timeTaken, setTimeTaken]               = useState(0);
 	const [units, setUnits]                       = useState('miles');
 	const [action, setAction]                     = useState('stop');
@@ -104,6 +103,7 @@ const App: () => Node = () => {
 	const [pausedTime, setPausedTime]             = useState(0);
 
 	const trackDistanceRef                        = useRef(0);
+	const position1Ref                            = useRef({});
 	const watchId                                 = useRef();
 	const pageRef                                 = useRef();
 	const scrollRef                               = useRef();
@@ -154,7 +154,6 @@ const App: () => Node = () => {
 
 	useEffect(() => {
 		trackDistanceRef.current = 0;
-		console.log ("fetchData called");
 		async function fetchData() {
 			await getCurrentLocation();
 			let currentHistory = await getTracks ();
@@ -193,7 +192,7 @@ const App: () => Node = () => {
 	}
 
 	function pointsDistance (point1, point2) {
-		if (!(point1?.coords?.latitude
+		if (!( point1?.coords?.latitude
 			&& point1?.coords?.longitude
 			&& point2?.coords?.latitude
 			&& point2?.coords?.longitude)) {
@@ -242,7 +241,7 @@ const App: () => Node = () => {
 		Geolocation.getCurrentPosition(
 			(position) => {
 				setCurrentLocation (position);
-				setPosition1(position);
+				position1Ref.current = position;
 			},
 			(error) => {
 				console.log ("Geolocation.getCurrentPosition : error : ", error);
@@ -270,11 +269,11 @@ const App: () => Node = () => {
 				//
 				// Increment the track distance by the new one.
 				//
-				trackDistanceRef.current += pointsDistance (position1, position2);
+				trackDistanceRef.current += pointsDistance (position1Ref.current, position2);
 
 				// Now this is the first position for next update.
 				//
-				setPosition1(position2);
+				position1Ref.current = position2;
 			},
 			(error) => {
 				console.log ("Geolocation.watchPosition error : ", error);
@@ -517,12 +516,12 @@ const App: () => Node = () => {
 				paddingTop    : 10,
 				paddingBottom : 10,
 			}}>
-				{Object.keys(position1).length == 0 && 
+				{!currentLocation?.coords?.latitude &&
 					<View style={styles.centre}>
 						<ActivityIndicator size="large" color="#d018ec" />
 					</View>
 				}
-				{action === 'stop' && Object.keys(position1).length > 0 && <View>
+				{action === 'stop' && currentLocation?.coords?.latitude && <View>
 					<TouchableOpacity
 						style={styles.button}
 						onPress={() => onStartPress()}
