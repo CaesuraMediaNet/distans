@@ -171,6 +171,14 @@ export default styles = StyleSheet.create({
 	centre                : {
 		alignItems        : 'center',
 	},
+	loading               : {
+		alignItems        : 'center',
+		fontFamily        : 'PTSans-Regular',
+		fontSize          : 21,
+        color             : '#d018ec',
+		marginTop         : 10,
+		marginBottom      : 10,
+	},
 	sectionText           : {
 		fontSize          : 18,
 		marginTop         : 7,

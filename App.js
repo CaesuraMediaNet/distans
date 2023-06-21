@@ -30,6 +30,7 @@ import {
 	PermissionsAndroid,
 	Dimensions,
 	BackHandler,
+	ActivityIndicator,
 } from 'react-native';
 
 // FontAwesome.
@@ -87,7 +88,7 @@ const App: () => Node = () => {
 
 	const secondsSinceEpoch                       = Math.round(Date.now() / 1000);
 	const [startTimeS, setStartTimeS]             = useState(secondsSinceEpoch);
-	const [position1,setPosition1]                = useState(0);
+	const [position1,setPosition1]                = useState({});
 	const [timeTaken, setTimeTaken]               = useState(0);
 	const [units, setUnits]                       = useState('miles');
 	const [action, setAction]                     = useState('stop');
@@ -107,22 +108,23 @@ const App: () => Node = () => {
 	const pageRef                                 = useRef();
 	const scrollRef                               = useRef();
 
-	const geoConfig = {
-		acuracy : {
-			android          : "high",
-			ios              : "best",
-		},
-		enableHighAccuracy   : true,
-		timeout              : 15000,
-		maximumAge           : 10000,
-		distanceFilter       : 0,
-		forceRequestLocation : true,
-		forceLocationManager : false, // if true : use android's default LocationManager API 
-		showLocationDialog   : true,
-	};
+    const geoConfig = {
+        acuracy : {
+            android          : "high",
+            ios              : "best",
+        },
+        enableHighAccuracy   : true,
+        timeout              : 15000,
+        maximumAge           : 10000,
+        distanceFilter       : 0,
+        forceRequestLocation : true,
+        forceLocationManager : Platform.Version >= 28, // true : use android's default LocationManager API 
+        showLocationDialog   : true,
+    };
 
 	useEffect(() => {
 		console.log ("useEffect : action=", action);
+		console.log ("geoConfig : ", geoConfig);
 		SplashScreen.hide();
 		function updateTimer () {
 
@@ -191,6 +193,12 @@ const App: () => Node = () => {
 	}
 
 	function pointsDistance (point1, point2) {
+		if (!(point1?.coords?.latitude
+			&& point1?.coords?.longitude
+			&& point2?.coords?.latitude
+			&& point2?.coords?.longitude)) {
+			return 0;
+		}
 		let metres = getPreciseDistance(
 			{ latitude: point1.coords.latitude, longitude: point1.coords.longitude },
 			{ latitude: point2.coords.latitude, longitude: point2.coords.longitude },
@@ -245,7 +253,7 @@ const App: () => Node = () => {
 
 	async function getLocationUpdates () {
 		const hasPermission = await hasLocationPermission();
-		if (!hasPermission) return;
+		if (!hasPermission)  return; 
 
 		await startForegroundService();
 
@@ -269,7 +277,7 @@ const App: () => Node = () => {
 				setPosition1(position2);
 			},
 			(error) => {
-				console.log ("Geolocation.watchPosition : error : ", error);
+				console.log ("Geolocation.watchPosition error : ", error);
 			},
 			geoConfig
 		);
@@ -509,7 +517,12 @@ const App: () => Node = () => {
 				paddingTop    : 10,
 				paddingBottom : 10,
 			}}>
-				{action === 'stop' && <View>
+				{Object.keys(position1).length == 0 && 
+					<View style={styles.centre}>
+						<ActivityIndicator size="large" color="#d018ec" />
+					</View>
+				}
+				{action === 'stop' && Object.keys(position1).length > 0 && <View>
 					<TouchableOpacity
 						style={styles.button}
 						onPress={() => onStartPress()}
