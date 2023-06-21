@@ -79,6 +79,7 @@ const minHistoryBarWidth = 65;
 const historyWidthOffset = 25;
 const maxTrackLength     = 10; // Reduce the size of the track array so it don't get too big.
 const showClearHistory   = false;
+const distanceResolution = 5;
 
 // The Distans App.
 //
@@ -86,12 +87,12 @@ const App: () => Node = () => {
 
 	const secondsSinceEpoch                       = Math.round(Date.now() / 1000);
 	const [startTimeS, setStartTimeS]             = useState(secondsSinceEpoch);
+	const [position1,setPosition1]                = useState(0);
 	const [timeTaken, setTimeTaken]               = useState(0);
 	const [units, setUnits]                       = useState('miles');
 	const [action, setAction]                     = useState('stop');
 	const [intervalId, setIntervalId]             = useState(0);
 	const [currentLocation, setCurrentLocation]   = useState(null);
-	const [trackDistance, setTrackDistance]       = useState("0.00000");
 	const [speed, setSpeed]                       = useState('');
 	const [history, setHistory]                   = useState ([]);
 	const [showSaveModal, setShowSaveModal]       = useState (false);
@@ -101,8 +102,7 @@ const App: () => Node = () => {
 	const [timeOfPause, setTimeOfPause]           = useState(secondsSinceEpoch);
 	const [pausedTime, setPausedTime]             = useState(0);
 
-	const trackRef                                = useRef([]);
-	const destagedDistanceRef                     = useRef(0);
+	const trackDistanceRef                        = useRef(0);
 	const watchId                                 = useRef();
 	const pageRef                                 = useRef();
 	const scrollRef                               = useRef();
@@ -117,7 +117,7 @@ const App: () => Node = () => {
 		maximumAge           : 10000,
 		distanceFilter       : 0,
 		forceRequestLocation : true,
-		forceLocationManager : true, // use android's default LocationManager API 
+		forceLocationManager : false, // if true : use android's default LocationManager API 
 		showLocationDialog   : true,
 	};
 
@@ -151,6 +151,7 @@ const App: () => Node = () => {
 	}, [action]);
 
 	useEffect(() => {
+		trackDistanceRef.current = 0;
 		console.log ("fetchData called");
 		async function fetchData() {
 			await getCurrentLocation();
@@ -195,19 +196,11 @@ const App: () => Node = () => {
 			{ latitude: point2.coords.latitude, longitude: point2.coords.longitude },
 			0.1
 		);
-		return metres;
-	}
-
-	function getDistanceFromTrack () {
-		let meters = 0;
-		for (let i=1; i < trackRef.current.length; i++) {
-			meters += pointsDistance (trackRef.current[i - 1], trackRef.current [i]);
-		}
-		if (units === 'miles') {
-			return meters / 1609.34;
-		} else {
-			return meters / 1000.00;
-		}
+        if (units === 'miles') {
+            return metres / 1609.34;
+        } else {
+            return metres / 1000.00;
+        }
 	}
 
 	async function hasLocationPermission () {
@@ -241,6 +234,7 @@ const App: () => Node = () => {
 		Geolocation.getCurrentPosition(
 			(position) => {
 				setCurrentLocation (position);
+				setPosition1(position);
 			},
 			(error) => {
 				console.log ("Geolocation.getCurrentPosition : error : ", error);
@@ -256,32 +250,23 @@ const App: () => Node = () => {
 		await startForegroundService();
 
 		watchId.current = Geolocation.watchPosition(
-			(position) => {
+			(position2) => {
 
-				// Update the track ref not the state, as the state is closed when entering this
+				setCurrentLocation (position2);
+
+				// Update the trackDistanceRef ref not a state, as the state is closed when entering this
 				// function, and we need it to keep being updated depending on previous values.
 				// Other states are fine to set here, as they only have one value.
 				//
 				// https://stackoverflow.com/questions/62806541/how-to-solve-the-react-hook-closure-issue
 				//
-				setCurrentLocation (position);
-				let currentTrack      = trackRef.current.slice();
-				currentTrack.push  (position);
-				
-				// Destaged distance is saved when track length gets too big, see below.
-				// And ditto the ref thing.
+				// Increment the track distance by the new one.
 				//
-				let thisTrackDistance = getDistanceFromTrack (currentTrack) + destagedDistanceRef.current;
-				setTrackDistance (thisTrackDistance.toFixed (5));
+				trackDistanceRef.current += pointsDistance (position1, position2);
 
-				// "Destage" the track points so the array does not get too big and crash the App.
+				// Now this is the first position for next update.
 				//
-				if (currentTrack.length > maxTrackLength) {
-					destagedDistanceRef.current = thisTrackDistance;
-					currentTrack = [];
-					currentTrack.push(position);
-				}
-				trackRef.current      = currentTrack;
+				setPosition1(position2);
 			},
 			(error) => {
 				console.log ("Geolocation.watchPosition : error : ", error);
@@ -310,20 +295,19 @@ const App: () => Node = () => {
 
 	function calculateSpeed () {
 		let speed     = '';
-		speed         = 3600 * (trackDistance / timeTaken );
-		let speedText = `${speed.toFixed (5)}${units.charAt(0)}ph`;
+		speed         = 3600 * (trackDistanceRef.current / timeTaken );
+		let speedText = `${speed.toFixed (distanceResolution)}${units.charAt(0)}ph`;
 		setSpeed (speedText);
 		return speedText;
 	}
-	function onStartPress  () {
-		setAction          ('start');
-		setTrackDistance   ("0.00000");
-		trackRef.current = [];
-		getCurrentLocation ();
-		const secondsSinceEpoch = Math.round(Date.now() / 1000);
-		setStartTimeS      (secondsSinceEpoch);
-		setTimeTaken       (0);
-		getLocationUpdates ();
+	function onStartPress          () {
+		setAction                  ('start');
+		trackDistanceRef.current = 0;
+		getCurrentLocation         ();
+		const secondsSinceEpoch  = Math.round(Date.now() / 1000);
+		setStartTimeS              (secondsSinceEpoch);
+		setTimeTaken               (0);
+		getLocationUpdates         ();
 	}
 	function onPausePress () {
 		setAction          ('pause');
@@ -343,19 +327,19 @@ const App: () => Node = () => {
 	function onStopPress () {
 		setAction('stop');
 		stopLocationUpdates();
-		trackDistance > 0.0 && setShowSaveModal(true);
+		trackDistanceRef.current > 0.0 && setShowSaveModal(true);
 	}
 	async function saveTrack (comment) {
 
 		// Don't save a track with no miles or km in.
 		//
-		if (trackDistance > 0.0) {
+		if (trackDistanceRef.current > 0.0) {
 			let thisSpeed      = calculateSpeed();
 			let currentHistory = history.slice();
 
 			let thisTrack = {
 				date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
-				distance  : trackDistance,
+				distance  : trackDistanceRef.current.toFixed(distanceResolution),
 				time      : new Date(timeTaken * 1000).toISOString().slice(11, 19),
 				units     : units,
 				speed     : thisSpeed,
@@ -542,7 +526,9 @@ const App: () => Node = () => {
 					</TouchableOpacity>
 				</View>}
 				<View style={styles.centeredView}>
-					<Text style={styles.title}>{trackDistance} {units}</Text>
+					<Text style={styles.title}>
+						{trackDistanceRef?.current?.toFixed(distanceResolution) || "0.0"} {units}
+					</Text>
 					<Text style={styles.title}>
 						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
 					</Text>
@@ -671,7 +657,7 @@ const App: () => Node = () => {
 						size={50}
 						icon={faCircleDot}
 					/>
-					<Text>Kilometers</Text>
+					<Text>Kilometres</Text>
 				</TouchableOpacity>
 			</View>
 			<View
