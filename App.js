@@ -79,9 +79,9 @@ import SaveModal    from './components/SaveModal';
 const barChartHeight          = 100;
 const minHistoryBarWidth      = 65;
 const historyWidthOffset      = 25;
-const showClearHistory        = true;
+const showClearHistory        = false;
 const distanceResolution      = 5;
-const generateTestTrackButton = true;
+const generateTestTrackButton = false;
 
 // The Distans App.
 //
@@ -184,7 +184,7 @@ const App: () => Node = () => {
 	function stopLocationUpdates () {
 		VIForegroundService.getInstance()
 			.stopService()
-			.catch((err) => err);
+			.catch((err) => console.log("VIForegroundService.getInstance error : ", err));
 
 		if (watchId.current !== null) {
 			Geolocation.clearWatch(watchId.current);
@@ -256,6 +256,7 @@ const App: () => Node = () => {
 		watchId.current = Geolocation.watchPosition(
 			(position2) => {
 
+				console.log ("Geolocation.watchPosition : ", position2)
 				setCurrentLocation (position2);
 
 				// Update the trackDistanceRef ref not a state, as the state is closed when entering this
@@ -551,7 +552,7 @@ const App: () => Node = () => {
 				</View>}
 				<View style={styles.centeredView}>
 					<Text style={styles.title}>
-						{convertMetresToUnits(trackDistanceRef?.current || 0.0) || "0.0"} {units}
+						{convertMetresToUnits(trackDistanceRef?.current || 0.0)} {units}
 					</Text>
 					<Text style={styles.title}>
 						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
@@ -651,7 +652,7 @@ const App: () => Node = () => {
                     {dataArray.map ((data, index) => (
                         <View key={index} style={styles.historyTrackBar}>
 							<Text style={{fontSize : 10}}>
-                                 {data.numTracks} tracks : {convertMetresToUnits(data.totalDistance)}{units} : {data.totalTime}
+                                 {data.numTracks} track{data.numTracks > 1 ? 's' : ''} {convertMetresToUnits(data.totalDistance)}{units} : {data.totalTime}
                             </Text>
 							<View style={{
 								backgroundColor : 'white',
