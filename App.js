@@ -76,12 +76,11 @@ import SaveModal    from './components/SaveModal';
 
 // Constants.
 //
+const barChartHeight     = 100;
 const minHistoryBarWidth = 65;
 const historyWidthOffset = 25;
-const maxTrackLength     = 10; // Reduce the size of the track array so it don't get too big.
-const showClearHistory   = false;
+const showClearHistory   = true;
 const distanceResolution = 5;
-const barChartHeight     = 100;
 
 // The Distans App.
 //
@@ -359,13 +358,31 @@ const App: () => Node = () => {
 		}
 	}
 
+	async function testTracks () {
+		let currentHistory = history.slice();
+		for (let i=0; i < 20; i++) {
+			let thisTrack = {
+                date      : new Date(new Date() - Math.random()*(1e+12)).toLocaleString('en-GB', { timeZone: 'UTC' }),
+                distance  : i + 2,
+                time      : new Date((i + 1) * 1000).toISOString().slice(11, 19),
+                units     : units,
+                speed     : 17.0,
+                comment   : "Test Track " + i,
+            };
+            await addTrack (thisTrack);
+            currentHistory.push (thisTrack);
+            setHistory (currentHistory);
+		}
+
+	}
+
 	// Bar chart calcs - using flexbox to draw one to my design, other graph libs aren't
 	// very flexible.
 	//
 	function getBarHeights (track) {
 		let maxDistance = 0.00;
 		history.forEach ((thisTrack, index) => {
-			if (maxDistance < thisTrack.distance) maxDistance = thisTrack.distance;
+			if (maxDistance < parseFloat(thisTrack.distance)) maxDistance = parseFloat(thisTrack.distance);
 		});
 		if (maxDistance > 0.0) {
 			const colourHeight   = barChartHeight * (track.distance / maxDistance)
@@ -598,7 +615,9 @@ const App: () => Node = () => {
 	function getStatsBarHeights(dataArray, item) {
 		let maxDistance = 0.0;
 		dataArray.forEach ((thisItem, index) => {
-			if (maxDistance < thisItem.totalDistance) maxDistance = thisItem.totalDistance;
+			if (maxDistance < parseFloat(thisItem.totalDistance)) {
+				maxDistance = parseFloat(thisItem.totalDistance);
+			}
 		});
 		if (maxDistance > 0.0) {
             const colourHeight   = barChartHeight * (item.totalDistance / maxDistance)
@@ -720,6 +739,12 @@ const App: () => Node = () => {
 	function HistoryPage () {
 		return (
 			<>
+			<TouchableOpacity
+				style={styles.button}
+				onPress={() => testTracks ()}
+			>
+				<Text style={styles.buttonText}>Generate Test Tracks</Text>
+			</TouchableOpacity>
 			<Header page={'history'} />
 			{history.length === 0 &&
 				<Text>No history recorded yet.</Text>
