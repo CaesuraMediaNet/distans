@@ -678,37 +678,40 @@ const App: () => Node = () => {
 
 			// Tue Jun 20 16:03:59 2023
 			//
-			let day = thisTrack.date.replace (/\d\d:\d\d:\d\d /, '');
+			// Daily.
+			//
+			let day = thisTrack.date.replace (/\d\d:\d\d:\d\d /, ''); // Tue Jun 20 2023
 			if (typeof dayHash[day] === "undefined") {
 				dayHash[day] = [];
 			}
 			dayHash[day].push (thisTrack);
-			let now        = new Date();
-			let then       = new Date(thisTrack.date);
-			let diff       = (now - then);
-			let sevenDaysS = 7 * 24 * 60 * 60 * 1000;
-			let today      = new Date().toLocaleString('en-GB', { timeZone: 'UTC' }).replace (/\d\d:\d\d:\d\d /, '');
-			let lastWeek   = new Date(now - sevenDaysS)
-				.toLocaleString('en-GB', { timeZone: 'UTC' })
-				.replace (/\d\d:\d\d:\d\d /, '');
-			let hashKey = lastWeek + " to " + today;
-			if (diff < sevenDaysS) {
-				if (typeof weekHash[hashKey] === "undefined") {
-					weekHash[hashKey] = [];
-				}
-				weekHash[hashKey].push(thisTrack);
-			}
 
-			// Month/Year
+			// Weekly. By week number 1-52 and Year
+			// https://www.geeksforgeeks.org/calculate-current-week-number-in-javascript/
+			//
+			let thisDate   = new Date(thisTrack.date);
+			let startDate  = new Date(thisDate.getFullYear(), 0, 1);
+			let days       = Math.floor((thisDate - startDate) / (24 * 60 * 60 * 1000));
+			let weekNumber = Math.ceil(days / 7);
+			let year       = thisDate.getFullYear();
+			let hashKey    = "week#" + weekNumber + " " + year;
+			if (typeof weekHash[hashKey] === "undefined") {
+				weekHash[hashKey] = [];
+			}
+			weekHash[hashKey].push(thisTrack);
+
+			// "Month Year"
 			//
 			let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-			let month = months[then.getMonth()];
-			let year  = then.getFullYear();
+			let month = months[thisDate.getMonth()];
 			hashKey   = `${month} ${year}`;
 			if (typeof monthHash[hashKey] === "undefined") {
 				monthHash[hashKey] = [];
 			}
 			monthHash[hashKey].push (thisTrack);
+
+			// Just year.
+			//
 			if (typeof yearHash[year]  === "undefined") {
 				yearHash[year] = [];
 			}

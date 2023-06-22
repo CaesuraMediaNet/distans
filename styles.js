@@ -230,6 +230,6 @@ export default styles = StyleSheet.create({
 	},
 	historyTrackBar       : {
 		flex              : 1,
-		alignSelf         : 'flex-end',
+		alignSelf         : 'baseline',
 	},
 });
