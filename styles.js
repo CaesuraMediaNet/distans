@@ -219,5 +219,17 @@ export default styles = StyleSheet.create({
 		borderWidth       : 1,
 		borderColor       : '#d018ec',
 		padding           : 10,
-	}
+	},
+	historyContainer      : {
+		flex              : 1,
+		flexDirection     : 'row',
+		borderWidth       : 1,
+		borderRadius      : 5,
+		borderColor       : "#d018ec",
+		padding           : 5,
+	},
+	historyTrackBar       : {
+		flex              : 1,
+		alignSelf         : 'flex-end',
+	},
 });

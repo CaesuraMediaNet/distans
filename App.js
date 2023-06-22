@@ -81,6 +81,7 @@ const historyWidthOffset = 25;
 const maxTrackLength     = 10; // Reduce the size of the track array so it don't get too big.
 const showClearHistory   = false;
 const distanceResolution = 5;
+const barChartHeight     = 100;
 
 // The Distans App.
 //
@@ -367,7 +368,6 @@ const App: () => Node = () => {
 			if (maxDistance < thisTrack.distance) maxDistance = thisTrack.distance;
 		});
 		if (maxDistance > 0.0) {
-			const barChartHeight = 100;
 			const colourHeight   = barChartHeight * (track.distance / maxDistance)
 			const whiteHeight    = barChartHeight - colourHeight;
 			return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
@@ -403,7 +403,7 @@ const App: () => Node = () => {
 	function HistoryBarChart () {
 		return (
 			<>
-			<Text style={styles.bigText}>History</Text>
+			<Text style={styles.bigText}>All Journeys</Text>
 			<ScrollView
 				style={{marginTop : 10, marginBottom : 20}}
 				ref={scrollRef}
@@ -411,17 +411,9 @@ const App: () => Node = () => {
 				persistentScrollbar={true}
 				onContentSizeChange={() => scrollToEnd()}
 			>
-				<View style={{
-					flex          : 1,
-					flexDirection : 'row',
-					borderWidth   : 1,
-					borderRadius  : 5,
-					borderColor   : "#d018ec",
-					padding       : 5,
-					width         : getBarChartWidth (),
-				}}>
+				<View style={[styles.historyContainer, {width : getBarChartWidth()}]}>
 					{history.map ((track, index) => (
-						<View key={index} style={{flex : 1, alignSelf : 'flex-end'}}>
+						<View key={index} style={styles.historyTrackBar}>
 							<Text style={{fontSize : 10, fontWeight : 'bold'}}>
 								 {track.comment || 'Untitled'} : 
 							</Text>
@@ -572,9 +564,97 @@ const App: () => Node = () => {
 			</>
 		)
 	}
+	function calculateAverages(hash) {
+		let returnArray = [];
+		for (const [title, tracks] of Object.entries(hash)) {
+			let totalDistance = 0;
+			let totalTime     = 0;
+			tracks.forEach ((thisTrack, index) => {
+				totalDistance += parseFloat(thisTrack.distance);
+
+				// https://stackoverflow.com/questions/9640266/convert-hhmmss-string-to-seconds-only-in-javascript
+				//
+				let timeS     = thisTrack.time.split(':').reduce((acc,time) => (60 * acc) + +time);
+				totalTime     += timeS;
+			});
+			let averageSpeed = totalDistance / totalTime;
+
+			// Convert seconds back to HH:MM:SS
+			//
+			var date       = new Date(0);
+			date.setSeconds(totalTime);
+			var timeString = date.toISOString().substring(11, 19);
+
+			returnArray.push({
+				title         : title,
+				averageSpeed  : averageSpeed.toFixed(distanceResolution),
+				totalDistance : totalDistance.toFixed(distanceResolution),
+				totalTime     : timeString,
+				numTracks     : tracks.length,
+			});
+		}
+		return returnArray;
+	}
+	function getStatsBarHeights(dataArray, item) {
+		let maxDistance = 0.0;
+		dataArray.forEach ((thisItem, index) => {
+			if (maxDistance < thisItem.totalDistance) maxDistance = thisItem.totalDistance;
+		});
+		if (maxDistance > 0.0) {
+            const colourHeight   = barChartHeight * (item.totalDistance / maxDistance)
+            const whiteHeight    = barChartHeight - colourHeight;
+            return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
+		} else {
+			return ({whiteHeight : 1, colourHeight : 1});
+		}
+
+	}
+	function ShowStats ({dataArray}) {
+		const thisScrollRef = useRef();
+		let chartWidth = Dimensions.get('window').width - historyWidthOffset;
+		if (dataArray.length > (Dimensions.get('window').width / minHistoryBarWidth)) {
+			chartWidth = dataArray.length * minHistoryBarWidth;
+		} 
+		let barWidth = (Dimensions.get('window').width / dataArray.length);
+		if (barWidth > minHistoryBarWidth) barWidth = minHistoryBarWidth;
+		return (
+			<ScrollView
+                style={{marginTop : 10, marginBottom : 20}}
+                ref={thisScrollRef}
+                horizontal={true}
+                persistentScrollbar={true}
+                onContentSizeChange={() => thisScrollRef.current.scrollToEnd({ animated: true })}
+            >
+                <View style={[styles.historyContainer, {width : chartWidth}]}>
+                    {dataArray.map ((data, index) => (
+                        <View key={index} style={styles.historyTrackBar}>
+							<Text style={{fontSize : 10}}>
+                                 {data.numTracks} tracks : {data.totalDistance}{units} : {data.totalTime}
+                            </Text>
+							<View style={{
+								backgroundColor : 'white',
+								width           : barWidth,
+								height          : getStatsBarHeights(dataArray, data).whiteHeight,
+							}}>
+							</View>
+							<View style={{
+								backgroundColor : '#d018ec',
+								width           : barWidth,
+								height          : getStatsBarHeights(dataArray, data).colourHeight,
+							}}>
+							</View>
+							<Text style={{fontSize : 10}}>{data.title}</Text>
+						</View>
+					))}
+				</View>
+			</ScrollView>
+		);
+	}
 	function HistoryStats () {
-		let dayHash  = {};
-		let weekHash = {};
+		let dayHash   = {};
+		let weekHash  = {};
+		let monthHash = {};
+		let yearHash  = {};
 		history.forEach ((thisTrack, index) => {
 
 			// Tue Jun 20 16:03:59 2023
@@ -582,10 +662,8 @@ const App: () => Node = () => {
 			let day = thisTrack.date.replace (/\d\d:\d\d:\d\d /, '');
 			if (typeof dayHash[day] === "undefined") {
 				dayHash[day] = [];
-			} else {
-				dayHash[day].push (thisTrack);
 			}
-			console.log ("dayHash : ", dayHash);
+			dayHash[day].push (thisTrack);
 			let now        = new Date();
 			let then       = new Date(thisTrack.date);
 			let diff       = (now - then);
@@ -598,18 +676,44 @@ const App: () => Node = () => {
 			if (diff < sevenDaysS) {
 				if (typeof weekHash[hashKey] === "undefined") {
 					weekHash[hashKey] = [];
-				} else {
-					weekHash[hashKey].push(thisTrack);
 				}
+				weekHash[hashKey].push(thisTrack);
 			}
-			console.log ("weekHash : ", weekHash);
 
-			// AKJC HERE : Do month, year, then add up the totals and display them.
-
+			// Month/Year
+			//
+			let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+			let month = months[then.getMonth()];
+			let year  = then.getFullYear();
+			hashKey   = `${month} ${year}`;
+			if (typeof monthHash[hashKey] === "undefined") {
+				monthHash[hashKey] = [];
+			}
+			monthHash[hashKey].push (thisTrack);
+			if (typeof yearHash[year]  === "undefined") {
+				yearHash[year] = [];
+			}
+			yearHash[year].push (thisTrack);
+			// console.log ("dayHash : ", dayHash);
+			// console.log ("weekHash : ", weekHash);
+			// console.log ("monthHash : ", monthHash);
+			// console.log ("yearHash : ", yearHash);
 		});
+		let dayArray   = calculateAverages (dayHash);
+		let weekArray  = calculateAverages (weekHash);
+		let monthArray = calculateAverages (monthHash);
+		let yearArray  = calculateAverages (yearHash);
+
 		return (
 			<View>
-				<Text>Stats TBD</Text>
+				<Text      key={'Daily'}    style={styles.bigText}>Daily</Text>
+				<ShowStats key={'day'}      dataArray={dayArray} />
+				<Text      key={'Weekly'}   style={styles.bigText}>Weekly</Text>
+				<ShowStats key={'week'}     dataArray={weekArray} />
+				<Text      key={'Monthly'}  style={styles.bigText}>Monthly</Text>
+				<ShowStats key={'month'}    dataArray={monthArray} />
+				<Text      key={'Annually'} style={styles.bigText}>Annually</Text>
+				<ShowStats key={'year'}     dataArray={yearArray} />
 			</View>
 		);
 	}
@@ -686,7 +790,6 @@ const App: () => Node = () => {
 		);
 	}
 
-	// See ~/BUILD/tracksr/src/App.tsx for what I did before and c/w
 	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
 	//
 	return (
