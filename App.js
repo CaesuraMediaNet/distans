@@ -76,11 +76,12 @@ import SaveModal    from './components/SaveModal';
 
 // Constants.
 //
-const barChartHeight     = 100;
-const minHistoryBarWidth = 65;
-const historyWidthOffset = 25;
-const showClearHistory   = true;
-const distanceResolution = 5;
+const barChartHeight          = 100;
+const minHistoryBarWidth      = 65;
+const historyWidthOffset      = 25;
+const showClearHistory        = true;
+const distanceResolution      = 5;
+const generateTestTrackButton = true;
 
 // The Distans App.
 //
@@ -203,11 +204,7 @@ const App: () => Node = () => {
 			{ latitude: point2.coords.latitude, longitude: point2.coords.longitude },
 			0.1
 		);
-        if (units === 'miles') {
-            return metres / 1609.34;
-        } else {
-            return metres / 1000.00;
-        }
+		return metres;
 	}
 
 	async function hasLocationPermission () {
@@ -300,12 +297,18 @@ const App: () => Node = () => {
 		});
 	};
 
+	function convertMetresToUnits (metres) {
+		if (units === "miles") {
+			return (metres / 1609.34).toFixed(distanceResolution);
+		} else {
+			return (metres / 1000.00).toFixed(distanceResolution);
+		}
+	}
+
 	function calculateSpeed () {
-		let speed     = '';
-		speed         = 3600 * (trackDistanceRef.current / timeTaken );
-		let speedText = `${speed.toFixed (distanceResolution)}${units.charAt(0)}ph`;
-		setSpeed (speedText);
-		return speedText;
+		let thisSpeed = 3600 * (trackDistanceRef.current / timeTaken );
+		setSpeed (thisSpeed);
+		return thisSpeed;
 	}
 	function onStartPress          () {
 		setAction                  ('start');
@@ -346,7 +349,7 @@ const App: () => Node = () => {
 
 			let thisTrack = {
 				date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
-				distance  : trackDistanceRef.current.toFixed(distanceResolution),
+				distance  : trackDistanceRef.current,
 				time      : new Date(timeTaken * 1000).toISOString().slice(11, 19),
 				units     : units,
 				speed     : thisSpeed,
@@ -363,7 +366,7 @@ const App: () => Node = () => {
 		for (let i=0; i < 20; i++) {
 			let thisTrack = {
                 date      : new Date(new Date() - Math.random()*(1e+12)).toLocaleString('en-GB', { timeZone: 'UTC' }),
-                distance  : i + 2,
+                distance  : (i * 1000) + 2,
                 time      : new Date((i + 1) * 1000).toISOString().slice(11, 19),
                 units     : units,
                 speed     : 17.0,
@@ -435,7 +438,7 @@ const App: () => Node = () => {
 								 {track.comment || 'Untitled'} : 
 							</Text>
 							<Text style={{fontSize : 10}}>
-								{track.distance}{units} : {track.speed} : {track.time} 
+								{convertMetresToUnits(track.distance)}{units} : {convertMetresToUnits(track.speed)}{units.charAt(0)}ph : {track.time} 
 							</Text>
 							<View style={{
 								backgroundColor : 'white',
@@ -548,14 +551,14 @@ const App: () => Node = () => {
 				</View>}
 				<View style={styles.centeredView}>
 					<Text style={styles.title}>
-						{trackDistanceRef?.current?.toFixed(distanceResolution) || "0.0"} {units}
+						{convertMetresToUnits(trackDistanceRef?.current || 0.0) || "0.0"} {units}
 					</Text>
 					<Text style={styles.title}>
 						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
 					</Text>
 					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
-					<Text style={styles.medText}>{action === 'stop' ? speed : ''}</Text>
+					<Text style={styles.medText}>{action === 'stop' ? convertMetresToUnits(speed)+units.charAt(0)+'ph' : ''}</Text>
 				</View>
 				{action.match(/start/) && <View>
 					<TouchableOpacity
@@ -604,8 +607,8 @@ const App: () => Node = () => {
 
 			returnArray.push({
 				title         : title,
-				averageSpeed  : averageSpeed.toFixed(distanceResolution),
-				totalDistance : totalDistance.toFixed(distanceResolution),
+				averageSpeed  : averageSpeed,
+				totalDistance : totalDistance,
 				totalTime     : timeString,
 				numTracks     : tracks.length,
 			});
@@ -648,7 +651,7 @@ const App: () => Node = () => {
                     {dataArray.map ((data, index) => (
                         <View key={index} style={styles.historyTrackBar}>
 							<Text style={{fontSize : 10}}>
-                                 {data.numTracks} tracks : {data.totalDistance}{units} : {data.totalTime}
+                                 {data.numTracks} tracks : {convertMetresToUnits(data.totalDistance)}{units} : {data.totalTime}
                             </Text>
 							<View style={{
 								backgroundColor : 'white',
@@ -742,12 +745,14 @@ const App: () => Node = () => {
 	function HistoryPage () {
 		return (
 			<>
-			<TouchableOpacity
-				style={styles.button}
-				onPress={() => testTracks ()}
-			>
-				<Text style={styles.buttonText}>Generate Test Tracks</Text>
-			</TouchableOpacity>
+			{generateTestTrackButton &&
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => testTracks ()}
+				>
+					<Text style={styles.buttonText}>Generate Test Tracks</Text>
+				</TouchableOpacity>
+			}
 			<Header page={'history'} />
 			{history.length === 0 &&
 				<Text>No history recorded yet.</Text>
@@ -774,7 +779,6 @@ const App: () => Node = () => {
 		function saveUnits () {
 			setUnits(selected);
 			showMainPage ();
-			// AKJC HERE : change the display if stopped and showing distance and speed.
 			ToastAndroid.show(`Units saved as ${selected}`, ToastAndroid.SHORT);
 		}
 		return (
