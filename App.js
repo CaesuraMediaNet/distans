@@ -84,7 +84,6 @@ const distanceResolution      = 5;
 const generateTestTrackButton = true;
 
 
- let testData = [{"comment": "Test", "date": "Thu Jun 22 18:13:10 2023", "distance": 0.9, "speed": 810, "time": "00:00:04", "units": "miles"}, {"comment": "Hello ", "date": "Thu Jun 22 18:30:08 2023", "distance": 2.1, "speed": 112.8358208955224, "time": "00:01:07", "units": "miles"}, {"comment": "Ggg", "date": "Thu Jun 22 19:16:03 2023", "distance": 855.1000000000004, "speed": 1122.2602989427637, "time": "00:45:43", "units": "km"}, {"comment": "Test Track 0", "date": "Sat Mar 13 11:53:00 2023", "distance": 2, "speed": 17, "time": "00:00:01", "units": "miles"}, {"comment": "Test Track 1", "date": "Sat Mar 16 00:51:34 2023", "distance": 1002, "speed": 17, "time": "00:00:02", "units": "miles"}, {"comment": "Test Track 2", "date": "Tue Aug 30 04:12:34 2023", "distance": 2002, "speed": 17, "time": "00:00:03", "units": "miles"}, {"comment": "Test Track 3", "date": "Tue Apr 19 12:41:08 2023", "distance": 3002, "speed": 17, "time": "00:00:04", "units": "miles"}, {"comment": "Test Track 4", "date": "Thu Sep 22 14:18:45 2023", "distance": 4002, "speed": 17, "time": "00:00:05", "units": "miles"}, {"comment": "Test Track 5", "date": "Tue Sep 30 18:34:33 2023", "distance": 5002, "speed": 17, "time": "00:00:06", "units": "miles"}, {"comment": "Test Track 6", "date": "Fri Jul 23 21:05:45 2023", "distance": 6002, "speed": 17, "time": "00:00:07", "units": "miles"}, {"comment": "Test Track 7", "date": "Thu Oct 12 10:05:58 2023", "distance": 7002, "speed": 17, "time": "00:00:08", "units": "miles"}, {"comment": "Test Track 8", "date": "Fri Feb  1 13:35:23 2023", "distance": 8002, "speed": 17, "time": "00:00:09", "units": "miles"}, {"comment": "Test Track 9", "date": "Fri Sep  2 22:43:47 2023", "distance": 9002, "speed": 17, "time": "00:00:10", "units": "miles"}, {"comment": "Test Track 10", "date": "Thu May 16 00:55:47 2023", "distance": 10002, "speed": 17, "time": "00:00:11", "units": "miles"}, {"comment": "Test Track 11", "date": "Thu Aug 14 02:00:11 2023", "distance": 11002, "speed": 17, "time": "00:00:12", "units": "miles"}, {"comment": "Test Track 12", "date": "Mon May 24 05:34:40 2023", "distance": 12002, "speed": 17, "time": "00:00:13", "units": "miles"}, {"comment": "Test Track 13", "date": "Wed Jul  9 19:53:10 2023", "distance": 13002, "speed": 17, "time": "00:00:14", "units": "miles"}, {"comment": "Test Track 14", "date": "Wed Sep 24 13:01:02 2023", "distance": 14002, "speed": 17, "time": "00:00:15", "units": "miles"}, {"comment": "Test Track 15", "date": "Thu Jan  2 21:38:24 2023", "distance": 15002, "speed": 17, "time": "00:00:16", "units": "miles"}, {"comment": "Test Track 16", "date": "Sun Oct 31 17:22:49 2023", "distance": 16002, "speed": 17, "time": "00:00:17", "units": "miles"}, {"comment": "Test Track 17", "date": "Mon Apr 28 00:36:33 2023", "distance": 17002, "speed": 17, "time": "00:00:18", "units": "miles"}, {"comment": "Test Track 18", "date": "Fri Oct  7 01:13:22 2023", "distance": 18002, "speed": 17, "time": "00:00:19", "units": "miles"}, {"comment": "Test Track 19", "date": "Fri Jun 22 17:23:13 2023", "distance": 19002, "speed": 17, "time": "00:00:20", "units": "miles"}]
 
 // The Distans App.
 //
@@ -366,6 +365,19 @@ const App: () => Node = () => {
 	}
 
 	async function testTracks () {
+		let testData = [];
+		for (let i=0; i < 20; i++) {
+			let thisTrack = {
+				date : new Date(new Date() - Math.random()*(1e+10)).toLocaleString('en-GB', { timeZone: 'UTC' }),
+				distance  : i + 2,
+                time      : new Date((i + 1) * 1000).toISOString().slice(11, 19),
+                units     : units,
+                speed     : 17.0,
+                comment   : "Test Track " + i,
+			}
+			testData.push (thisTrack);
+		}
+		console.log ("testData : ", testData);
 		testData.sort(function(a,b) {
 			return new Date(a.date) - new Date(b.date);
 		});
@@ -614,8 +626,55 @@ const App: () => Node = () => {
 		return returnArray;
 	}
 	function fillInDayGaps(dayArray) {
-		let firstDay = dayArray[0].title;
-		let lastDay  = dayArray[-1].title;
+
+		// First get a record of the days we have data for,
+		//
+		let daysHash = {};
+		dayArray.forEach ((item, index) => {
+			daysHash[item.title] = 1;
+		});
+
+		// Number of days between first and last data we have data for.
+		//
+		let firstDay = new Date(dayArray[0].title);
+		let lastDay  = new Date(dayArray[dayArray.length-1].title);
+		let numDays  = Math.floor((lastDay - firstDay) / (24 * 60 * 60 * 1000));
+
+		// Count the days from the start of recording and see if we've got data, if not,
+		// insert a blank day.
+		//
+		let blankItem = {
+			"averageSpeed"  : 0.0,
+			"numTracks"     : 0,
+			"title"         : "",
+			"totalDistance" : 0,
+			"totalTime"     : "00:00:00",
+		}
+		for (let i=1; i < numDays; i++) {
+
+			// Increment the date.
+			//
+			let thisDay = new Date(dayArray[0].title);
+			thisDay.setDate(thisDay.getDate() + i);
+			let localeThisDay = thisDay.toLocaleString('en-GB', { timeZone: 'UTC' }).replace (/\d\d:\d\d:\d\d /, '');
+
+			// Missed day.
+			//
+			if (typeof daysHash[localeThisDay] === "undefined") {
+				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+				thisBlankItem.title = localeThisDay;
+
+				// Add to the end of the array, we'll sort by date later.
+				//
+				dayArray.push (thisBlankItem);
+			}
+		}
+
+		// Now sort the data and non-data days by date.
+		//
+		dayArray.sort(function(a,b) {
+			return new Date(a.title) - new Date(b.title);
+		});
 		return dayArray;
 	}
 	function fillInWeekGaps(weekArray){
@@ -747,17 +806,17 @@ const App: () => Node = () => {
 		let weekArray  = calculateAverages (weekHash);
 		let monthArray = calculateAverages (monthHash);
 		let yearArray  = calculateAverages (yearHash);
-		console.log ("dayArray : ", dayArray);
-		console.log ("weekArray : ", weekArray);
-		console.log ("monthArray : ", monthArray);
-		console.log ("yearArray : ", yearArray);
+		// console.log ("dayArray : ", dayArray);
+		// console.log ("weekArray : ", weekArray);
+		// console.log ("monthArray : ", monthArray);
+		// console.log ("yearArray : ", yearArray);
 
 		// There will be gaps where no journeys are taken in a day, week, month or year.
 		//
-		// dayArray   = fillInDayGaps(dayArray);
-		// weekArray  = fillInWeekGaps(weekArray);
-		// monthArray = fillInMonthGaps(monthArray);
-		// yearArray  = fillInYearGaps(yearArray);
+		dayArray   = fillInDayGaps(dayArray);
+		weekArray  = fillInWeekGaps(weekArray);
+		monthArray = fillInMonthGaps(monthArray);
+		yearArray  = fillInYearGaps(yearArray);
 
 		return (
 			<View>
