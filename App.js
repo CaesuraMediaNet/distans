@@ -77,11 +77,14 @@ import SaveModal    from './components/SaveModal';
 // Constants.
 //
 const barChartHeight          = 100;
-const minHistoryBarWidth      = 65;
+const maxHistoryBarWidth      = 65;
 const historyWidthOffset      = 25;
-const showClearHistory        = false;
+const showClearHistory        = true;
 const distanceResolution      = 5;
-const generateTestTrackButton = false;
+const generateTestTrackButton = true;
+
+
+ let testData = [{"comment": "Test", "date": "Thu Jun 22 18:13:10 2023", "distance": 0.9, "speed": 810, "time": "00:00:04", "units": "miles"}, {"comment": "Hello ", "date": "Thu Jun 22 18:30:08 2023", "distance": 2.1, "speed": 112.8358208955224, "time": "00:01:07", "units": "miles"}, {"comment": "Ggg", "date": "Thu Jun 22 19:16:03 2023", "distance": 855.1000000000004, "speed": 1122.2602989427637, "time": "00:45:43", "units": "km"}, {"comment": "Test Track 0", "date": "Sat Mar 13 11:53:00 2023", "distance": 2, "speed": 17, "time": "00:00:01", "units": "miles"}, {"comment": "Test Track 1", "date": "Sat Mar 16 00:51:34 2023", "distance": 1002, "speed": 17, "time": "00:00:02", "units": "miles"}, {"comment": "Test Track 2", "date": "Tue Aug 30 04:12:34 2023", "distance": 2002, "speed": 17, "time": "00:00:03", "units": "miles"}, {"comment": "Test Track 3", "date": "Tue Apr 19 12:41:08 2023", "distance": 3002, "speed": 17, "time": "00:00:04", "units": "miles"}, {"comment": "Test Track 4", "date": "Thu Sep 22 14:18:45 2023", "distance": 4002, "speed": 17, "time": "00:00:05", "units": "miles"}, {"comment": "Test Track 5", "date": "Tue Sep 30 18:34:33 2023", "distance": 5002, "speed": 17, "time": "00:00:06", "units": "miles"}, {"comment": "Test Track 6", "date": "Fri Jul 23 21:05:45 2023", "distance": 6002, "speed": 17, "time": "00:00:07", "units": "miles"}, {"comment": "Test Track 7", "date": "Thu Oct 12 10:05:58 2023", "distance": 7002, "speed": 17, "time": "00:00:08", "units": "miles"}, {"comment": "Test Track 8", "date": "Fri Feb  1 13:35:23 2023", "distance": 8002, "speed": 17, "time": "00:00:09", "units": "miles"}, {"comment": "Test Track 9", "date": "Fri Sep  2 22:43:47 2023", "distance": 9002, "speed": 17, "time": "00:00:10", "units": "miles"}, {"comment": "Test Track 10", "date": "Thu May 16 00:55:47 2023", "distance": 10002, "speed": 17, "time": "00:00:11", "units": "miles"}, {"comment": "Test Track 11", "date": "Thu Aug 14 02:00:11 2023", "distance": 11002, "speed": 17, "time": "00:00:12", "units": "miles"}, {"comment": "Test Track 12", "date": "Mon May 24 05:34:40 2023", "distance": 12002, "speed": 17, "time": "00:00:13", "units": "miles"}, {"comment": "Test Track 13", "date": "Wed Jul  9 19:53:10 2023", "distance": 13002, "speed": 17, "time": "00:00:14", "units": "miles"}, {"comment": "Test Track 14", "date": "Wed Sep 24 13:01:02 2023", "distance": 14002, "speed": 17, "time": "00:00:15", "units": "miles"}, {"comment": "Test Track 15", "date": "Thu Jan  2 21:38:24 2023", "distance": 15002, "speed": 17, "time": "00:00:16", "units": "miles"}, {"comment": "Test Track 16", "date": "Sun Oct 31 17:22:49 2023", "distance": 16002, "speed": 17, "time": "00:00:17", "units": "miles"}, {"comment": "Test Track 17", "date": "Mon Apr 28 00:36:33 2023", "distance": 17002, "speed": 17, "time": "00:00:18", "units": "miles"}, {"comment": "Test Track 18", "date": "Fri Oct  7 01:13:22 2023", "distance": 18002, "speed": 17, "time": "00:00:19", "units": "miles"}, {"comment": "Test Track 19", "date": "Fri Jun 22 17:23:13 2023", "distance": 19002, "speed": 17, "time": "00:00:20", "units": "miles"}]
 
 // The Distans App.
 //
@@ -363,21 +366,15 @@ const App: () => Node = () => {
 	}
 
 	async function testTracks () {
+		testData.sort(function(a,b) {
+			return new Date(a.date) - new Date(b.date);
+		});
 		let currentHistory = history.slice();
-		for (let i=0; i < 20; i++) {
-			let thisTrack = {
-                date      : new Date(new Date() - Math.random()*(1e+12)).toLocaleString('en-GB', { timeZone: 'UTC' }),
-                distance  : (i * 1000) + 2,
-                time      : new Date((i + 1) * 1000).toISOString().slice(11, 19),
-                units     : units,
-                speed     : 17.0,
-                comment   : "Test Track " + i,
-            };
-            await addTrack (thisTrack);
-            currentHistory.push (thisTrack);
-            setHistory (currentHistory);
+		for (let i=0; i < testData.length; i++) {
+            await addTrack (testData[i]);
+            currentHistory.push (testData[i]);
 		}
-
+		setHistory (currentHistory);
 	}
 
 	// Bar chart calcs - using flexbox to draw one to my design, other graph libs aren't
@@ -397,19 +394,19 @@ const App: () => Node = () => {
 		}
 	}
 	function getBarWidth () {
-		if (history.length > 0) {
-			let width = (Dimensions.get('window').width / history.length);
-			if (width > minHistoryBarWidth) width = minHistoryBarWidth;
-			return width;
+		let width = (Dimensions.get('window').width / history.length);
+		if (width > maxHistoryBarWidth) { 
+			width = maxHistoryBarWidth
 		} else {
-			return minHistoryBarWidth;
+			width = "95%";
 		}
+		return width;
 	}
 	function getBarChartWidth () {
 		if (history.length > 0) {
 			let width = Dimensions.get('window').width - historyWidthOffset;
-			if (history.length > (Dimensions.get('window').width / minHistoryBarWidth)) {
-				width = history.length * minHistoryBarWidth;
+			if (history.length > (Dimensions.get('window').width / maxHistoryBarWidth)) {
+				width = history.length * maxHistoryBarWidth;
 			}
 			return width;
 		} else {
@@ -635,11 +632,15 @@ const App: () => Node = () => {
 	function ShowStats ({dataArray}) {
 		const thisScrollRef = useRef();
 		let chartWidth = Dimensions.get('window').width - historyWidthOffset;
-		if (dataArray.length > (Dimensions.get('window').width / minHistoryBarWidth)) {
-			chartWidth = dataArray.length * minHistoryBarWidth;
+		if (dataArray.length > (Dimensions.get('window').width / maxHistoryBarWidth)) {
+			chartWidth = dataArray.length * maxHistoryBarWidth;
 		} 
 		let barWidth = (Dimensions.get('window').width / dataArray.length);
-		if (barWidth > minHistoryBarWidth) barWidth = minHistoryBarWidth;
+		if (barWidth > maxHistoryBarWidth) {
+			barWidth = maxHistoryBarWidth;
+		} else {
+			barWidth = "95%";
+		}
 		return (
 			<ScrollView
                 style={{marginTop : 10, marginBottom : 20}}
@@ -690,15 +691,22 @@ const App: () => Node = () => {
 			}
 			dayHash[day].push (thisTrack);
 
-			// Weekly. By week number 1-52 and Year
-			// https://www.geeksforgeeks.org/calculate-current-week-number-in-javascript/
+			// Weekly.
 			//
 			let thisDate   = new Date(thisTrack.date);
-			let startDate  = new Date(thisDate.getFullYear(), 0, 1);
+			let year       = thisDate.getFullYear();
+			let startDate  = new Date(year, 0, 1);
 			let days       = Math.floor((thisDate - startDate) / (24 * 60 * 60 * 1000));
 			let weekNumber = Math.ceil(days / 7);
-			let year       = thisDate.getFullYear();
-			let hashKey    = "week#" + weekNumber + " " + year;
+			let daysToStart = (7 * (weekNumber - 1)) * 24 * 60 * 60 * 1000;
+			let daysToEnd   = 7 * weekNumber * 24 * 60 * 60 * 1000;
+			let weekStart  = new Date (startDate.getTime() + daysToStart).toString();
+			let weekEnd    = new Date (startDate.getTime() + daysToEnd).toString();
+			let hashKey    = ""
+				+ weekStart.replace(/^....(.+)\d\d:\d\d:\d\d.+/, '$1')
+				+ " to "
+				+ weekEnd.replace(/^....(.+)\d\d:\d\d:\d\d.+/, '$1');
+			//let hashKey    = "week#" + weekNumber + " " + year;
 			if (typeof weekHash[hashKey] === "undefined") {
 				weekHash[hashKey] = [];
 			}
