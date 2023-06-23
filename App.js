@@ -634,7 +634,7 @@ const App: () => Node = () => {
 			daysHash[item.title] = 1;
 		});
 
-		// Number of days between first and last data we have data for.
+		// Number of days between first and last day we have data for.
 		//
 		let firstDay = new Date(dayArray[0].title);
 		let lastDay  = new Date(dayArray[dayArray.length-1].title);
@@ -678,6 +678,66 @@ const App: () => Node = () => {
 		return dayArray;
 	}
 	function fillInWeekGaps(weekArray){
+		console.log ("weekArray : ", weekArray);
+
+		// First get a record of the weeks we have data for,
+		//
+		let weeksHash = {};
+		weekArray.forEach ((item, index) => {
+			weeksHash[item.title] = 1;
+		});
+
+		// Feb 26 2023 to Mar 04 2023
+		//
+		// Number of weeks between first and last week we have data for.
+		//
+		let firstDay  = new Date(weekArray[0].title.replace(/ to.+$/, ''));
+		let lastDay   = new Date(weekArray[weekArray.length-1].title.replace(/^.+ to /, ''));
+		let numWeeks  = Math.ceil((lastDay - firstDay) / (7 * 24 * 60 * 60 * 1000));
+		let blankItem = {
+			"averageSpeed"  : 0.0,
+			"numTracks"     : 0,
+			"title"         : "",
+			"totalDistance" : 0,
+			"totalTime"     : "00:00:00",
+		}
+		for (let i=0; i < numWeeks; i++) {
+
+			// Increment the dates by a week.
+			//
+			let thisFirstDay = new Date(firstDay);
+			let thisLastDay  = new Date(firstDay);
+			thisLastDay.setDate(thisLastDay.getDate() + 6)
+
+			thisFirstDay.setDate(thisFirstDay.getDate() + (i * 7));
+			thisLastDay.setDate(thisLastDay.getDate()   + (i * 7));
+
+			let textFirstDay = thisFirstDay
+				.toString()
+				.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1');
+
+			let textLastDay  = thisLastDay
+				.toString()
+				.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1')
+
+			// Missed day.
+			//
+			let hashKey = textFirstDay + " to " + textLastDay;
+			if (typeof weeksHash[hashKey] === "undefined") {
+				console.log ("Missed week : ", hashKey);
+				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+				thisBlankItem.title = hashKey;
+
+				// Add to the end of the array, we'll sort by date later.
+				//
+				weekArray.push (thisBlankItem);
+			} else {
+				console.log ("Got Week : ", hashKey);
+			}
+		}
+		weekArray.sort(function(a,b) {
+			return new Date(a.title.replace(/ to .*$/, '')) - new Date(b.title.replace(/ to .*$/, ''));
+		});
 		return weekArray;
 	}
 	function fillInMonthGaps(monthArray){
@@ -772,13 +832,13 @@ const App: () => Node = () => {
 			let days       = Math.floor((thisDate - startDate) / (24 * 60 * 60 * 1000));
 			let weekNumber = Math.ceil(days / 7);
 			let daysToStart = (7 * (weekNumber - 1)) * 24 * 60 * 60 * 1000;
-			let daysToEnd   = 7 * weekNumber * 24 * 60 * 60 * 1000;
+			let daysToEnd   = daysToStart + (6 * 24 * 60 * 60 * 1000);
 			let weekStart  = new Date (startDate.getTime() + daysToStart).toString();
 			let weekEnd    = new Date (startDate.getTime() + daysToEnd).toString();
 			let hashKey    = ""
-				+ weekStart.replace(/^....(.+)\d\d:\d\d:\d\d.+/, '$1')
+				+ weekStart.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1')
 				+ " to "
-				+ weekEnd.replace(/^....(.+)\d\d:\d\d:\d\d.+/, '$1');
+				+ weekEnd.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1');
 			//let hashKey    = "week#" + weekNumber + " " + year;
 			if (typeof weekHash[hashKey] === "undefined") {
 				weekHash[hashKey] = [];
