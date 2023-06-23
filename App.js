@@ -82,6 +82,14 @@ const historyWidthOffset      = 25;
 const showClearHistory        = true;
 const distanceResolution      = 5;
 const generateTestTrackButton = true;
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let blankItem = {
+	"averageSpeed"  : 0.0,
+	"numTracks"     : 0,
+	"title"         : "",
+	"totalDistance" : 0,
+	"totalTime"     : "00:00:00",
+};
 
 
 
@@ -388,88 +396,6 @@ const App: () => Node = () => {
 		}
 		setHistory (currentHistory);
 	}
-
-	// Bar chart calcs - using flexbox to draw one to my design, other graph libs aren't
-	// very flexible.
-	//
-	function getBarHeights (track) {
-		let maxDistance = 0.00;
-		history.forEach ((thisTrack, index) => {
-			if (maxDistance < parseFloat(thisTrack.distance)) maxDistance = parseFloat(thisTrack.distance);
-		});
-		if (maxDistance > 0.0) {
-			const colourHeight   = barChartHeight * (track.distance / maxDistance)
-			const whiteHeight    = barChartHeight - colourHeight;
-			return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
-		} else {
-			return ({whiteHeight : 1, colourHeight : 1});
-		}
-	}
-	function getBarWidth () {
-		let width = (Dimensions.get('window').width / history.length);
-		if (width > maxHistoryBarWidth) { 
-			width = maxHistoryBarWidth
-		} else {
-			width = "95%";
-		}
-		return width;
-	}
-	function getBarChartWidth () {
-		if (history.length > 0) {
-			let width = Dimensions.get('window').width - historyWidthOffset;
-			if (history.length > (Dimensions.get('window').width / maxHistoryBarWidth)) {
-				width = history.length * maxHistoryBarWidth;
-			}
-			return width;
-		} else {
-			return Dimensions.get('window').width - historyWidthOffset;
-		}
-	}
-	function scrollToEnd () {
-		if (action === 'stop') {
-			scrollRef.current.scrollToEnd({ animated: true });
-		}
-	}
-	function HistoryBarChart () {
-		return (
-			<>
-			<Text style={styles.bigText}>All Journeys</Text>
-			<ScrollView
-				style={{marginTop : 10, marginBottom : 20}}
-				ref={scrollRef}
-				horizontal={true}
-				persistentScrollbar={true}
-				onContentSizeChange={() => scrollToEnd()}
-			>
-				<View style={[styles.historyContainer, {width : getBarChartWidth()}]}>
-					{history.map ((track, index) => (
-						<View key={index} style={styles.historyTrackBar}>
-							<Text style={{fontSize : 10, fontWeight : 'bold'}}>
-								 {track.comment || 'Untitled'} : 
-							</Text>
-							<Text style={{fontSize : 10}}>
-								{convertMetresToUnits(track.distance)}{units} : {convertMetresToUnits(track.speed)}{units.charAt(0)}ph : {track.time} 
-							</Text>
-							<View style={{
-								backgroundColor : 'white',
-								width           : getBarWidth (),
-								height          : getBarHeights(track).whiteHeight,
-							}}>
-							</View>
-							<View style={{
-								backgroundColor : '#d018ec',
-								width           : getBarWidth (),
-								height          : getBarHeights(track).colourHeight,
-							}}>
-							</View>
-							<Text style={{fontSize : 10}}>{track.date}</Text>
-						</View>
-					))}
-				</View>
-			</ScrollView>
-			</>
-		);
-	}
 	async function clearHistory () {
 		await clearTracks();
 		setHistory ([]);
@@ -498,7 +424,7 @@ const App: () => Node = () => {
 					style={styles.logoImage}
 				/>
 				<Text style={styles.title}>
-					DistanS
+					Distans
 				</Text>
 				{page.match(/main|history/) &&
 				<TouchableOpacity
@@ -537,6 +463,8 @@ const App: () => Node = () => {
 				marginBottom  : 10,
 				paddingTop    : 10,
 				paddingBottom : 10,
+				paddingLeft   : 10,
+				paddingRight  : 10,
 			}}>
 				{!currentLocation?.coords?.latitude &&
 					<View style={styles.centre}>
@@ -643,13 +571,6 @@ const App: () => Node = () => {
 		// Count the days from the start of recording and see if we've got data, if not,
 		// insert a blank day.
 		//
-		let blankItem = {
-			"averageSpeed"  : 0.0,
-			"numTracks"     : 0,
-			"title"         : "",
-			"totalDistance" : 0,
-			"totalTime"     : "00:00:00",
-		}
 		for (let i=1; i < numDays; i++) {
 
 			// Increment the date.
@@ -678,7 +599,6 @@ const App: () => Node = () => {
 		return dayArray;
 	}
 	function fillInWeekGaps(weekArray){
-		console.log ("weekArray : ", weekArray);
 
 		// First get a record of the weeks we have data for,
 		//
@@ -694,13 +614,6 @@ const App: () => Node = () => {
 		let firstDay  = new Date(weekArray[0].title.replace(/ to.+$/, ''));
 		let lastDay   = new Date(weekArray[weekArray.length-1].title.replace(/^.+ to /, ''));
 		let numWeeks  = Math.ceil((lastDay - firstDay) / (7 * 24 * 60 * 60 * 1000));
-		let blankItem = {
-			"averageSpeed"  : 0.0,
-			"numTracks"     : 0,
-			"title"         : "",
-			"totalDistance" : 0,
-			"totalTime"     : "00:00:00",
-		}
 		for (let i=0; i < numWeeks; i++) {
 
 			// Increment the dates by a week.
@@ -724,15 +637,12 @@ const App: () => Node = () => {
 			//
 			let hashKey = textFirstDay + " to " + textLastDay;
 			if (typeof weeksHash[hashKey] === "undefined") {
-				console.log ("Missed week : ", hashKey);
 				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
 				thisBlankItem.title = hashKey;
 
 				// Add to the end of the array, we'll sort by date later.
 				//
 				weekArray.push (thisBlankItem);
-			} else {
-				console.log ("Got Week : ", hashKey);
 			}
 		}
 		weekArray.sort(function(a,b) {
@@ -741,6 +651,32 @@ const App: () => Node = () => {
 		return weekArray;
 	}
 	function fillInMonthGaps(monthArray){
+
+		// First get a record of the months we have data for nd the years span.
+		// "Mar 2023"
+		//
+		let monthsHash = {};
+		let years      = [];
+		monthArray.forEach ((item, index) => {
+			monthsHash[item.title] = 1;
+			years.push(item.title.replace(/^..../, ''));
+		});
+		for (let i=0; i < years.length; i++) {
+			for (let j=0; j < months.length; j++) {
+				let hashKey = months[j] + " " + years[i];
+				if (typeof monthsHash[hashKey] === "undefined") {
+					let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+					thisBlankItem.title = hashKey;
+					monthArray.push (thisBlankItem);
+				}
+				if (hashKey == monthArray[monthArray.length-1].title) {
+					break;
+				}
+			}
+		}
+		monthArray.sort(function(a,b) {
+			return new Date("01 " + a.title) - new Date("01 " + b.title);
+		});
 		return monthArray;
 	}
 	function fillInYearGaps(yearArray){
@@ -847,7 +783,6 @@ const App: () => Node = () => {
 
 			// "Month Year"
 			//
-			let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 			let month = months[thisDate.getMonth()];
 			hashKey   = `${month} ${year}`;
 			if (typeof monthHash[hashKey] === "undefined") {
@@ -866,10 +801,6 @@ const App: () => Node = () => {
 		let weekArray  = calculateAverages (weekHash);
 		let monthArray = calculateAverages (monthHash);
 		let yearArray  = calculateAverages (yearHash);
-		// console.log ("dayArray : ", dayArray);
-		// console.log ("weekArray : ", weekArray);
-		// console.log ("monthArray : ", monthArray);
-		// console.log ("yearArray : ", yearArray);
 
 		// There will be gaps where no journeys are taken in a day, week, month or year.
 		//
@@ -908,7 +839,7 @@ const App: () => Node = () => {
 			}
 			{history.length > 0 &&
 				<>
-				<HistoryBarChart />
+				<HistoryStats />
 				{showClearHistory &&
 					<TouchableOpacity
 						style={styles.button}
@@ -917,7 +848,6 @@ const App: () => Node = () => {
 						<Text style={styles.buttonText}>Clear History</Text>
 					</TouchableOpacity>
 				}
-				<HistoryStats />
 				</>
 			}
 			</>
