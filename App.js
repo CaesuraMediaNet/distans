@@ -259,7 +259,7 @@ const App: () => Node = () => {
 		watchId.current = Geolocation.watchPosition(
 			(position2) => {
 
-				console.log ("Geolocation.watchPosition : ", position2)
+				// console.log ("Geolocation.watchPosition : ", position2)
 				setCurrentLocation (position2);
 
 				// Update the trackDistanceRef ref not a state, as the state is closed when entering this
@@ -613,6 +613,20 @@ const App: () => Node = () => {
 		}
 		return returnArray;
 	}
+	function fillInDayGaps(dayArray) {
+		let firstDay = dayArray[0].title;
+		let lastDay  = dayArray[-1].title;
+		return dayArray;
+	}
+	function fillInWeekGaps(weekArray){
+		return weekArray;
+	}
+	function fillInMonthGaps(monthArray){
+		return monthArray;
+	}
+	function fillInYearGaps(yearArray){
+		return yearArray;
+	}
 	function getStatsBarHeights(dataArray, item) {
 		let maxDistance = 0.0;
 		dataArray.forEach ((thisItem, index) => {
@@ -728,15 +742,22 @@ const App: () => Node = () => {
 				yearHash[year] = [];
 			}
 			yearHash[year].push (thisTrack);
-			// console.log ("dayHash : ", dayHash);
-			// console.log ("weekHash : ", weekHash);
-			// console.log ("monthHash : ", monthHash);
-			// console.log ("yearHash : ", yearHash);
 		});
 		let dayArray   = calculateAverages (dayHash);
 		let weekArray  = calculateAverages (weekHash);
 		let monthArray = calculateAverages (monthHash);
 		let yearArray  = calculateAverages (yearHash);
+		console.log ("dayArray : ", dayArray);
+		console.log ("weekArray : ", weekArray);
+		console.log ("monthArray : ", monthArray);
+		console.log ("yearArray : ", yearArray);
+
+		// There will be gaps where no journeys are taken in a day, week, month or year.
+		//
+		// dayArray   = fillInDayGaps(dayArray);
+		// weekArray  = fillInWeekGaps(weekArray);
+		// monthArray = fillInMonthGaps(monthArray);
+		// yearArray  = fillInYearGaps(yearArray);
 
 		return (
 			<View>
