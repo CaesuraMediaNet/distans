@@ -82,8 +82,8 @@ const historyWidthOffset      = 25;
 const showClearHistory        = true;
 const distanceResolution      = 5;
 const generateTestTrackButton = true;
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-let blankItem = {
+const months                  = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let blankItem                 = {
 	"averageSpeed"  : 0.0,
 	"numTracks"     : 0,
 	"title"         : "",
@@ -378,7 +378,7 @@ const App: () => Node = () => {
 			let thisTrack = {
 				date : new Date(new Date() - Math.random()*(1e+10)).toLocaleString('en-GB', { timeZone: 'UTC' }),
 				distance  : i + 2,
-                time      : new Date((i + 1) * 1000).toISOString().slice(11, 19),
+                time      : new Date((i + 1) * 10000).toISOString().slice(11, 19),
                 units     : units,
                 speed     : 17.0,
                 comment   : "Test Track " + i,
@@ -551,6 +551,28 @@ const App: () => Node = () => {
 				numTracks     : tracks.length,
 			});
 		}
+
+		// Comes in as a hash, not necessarily in the same order it was created.
+		//
+		returnArray.sort(function(a,b) {
+
+			// Dec 24 2022 to Dec 30 2022 - Weekly
+			//
+			if (a.title.match (/ to /)) {
+				return new Date(a.title.replace(/ to .+$/, '')) - new Date(b.title.replace(/ to .+$/, ''));
+
+			// Jun 2023 - Monthly
+			//
+			} else if (a.title.match (/^........$/)) {
+				return new Date("01 " + a.title) - new Date("01 " + b.title);
+
+			// Just a year.
+			//
+			} else if (a.title.match(/^\d\d\d\d$/)) {
+				return new Date("01 Mar " + a.title) - new Date("01 Mar " + b.title);
+			}
+			return new Date(a.title) - new Date(b.title);
+		});
 		return returnArray;
 	}
 	function fillInDayGaps(dayArray) {
@@ -651,6 +673,7 @@ const App: () => Node = () => {
 		return weekArray;
 	}
 	function fillInMonthGaps(monthArray){
+		console.log ("monthArray : ", monthArray);
 
 		// First get a record of the months we have data for nd the years span.
 		// "Mar 2023"
@@ -661,16 +684,33 @@ const App: () => Node = () => {
 			monthsHash[item.title] = 1;
 			years.push(item.title.replace(/^..../, ''));
 		});
-		for (let i=0; i < years.length; i++) {
-			for (let j=0; j < months.length; j++) {
-				let hashKey = months[j] + " " + years[i];
+		let start     = monthArray[0].title;
+		let end       = monthArray[monthArray.length-1].title;
+
+		// Years*12 minus Months before first one munus Months after last one. Plus one.
+		//
+		let numMonths = (years.length * 12)
+			+ 1
+			- months.indexOf (start.replace(/^(...).+$/, '$1'))
+			- 12
+			+ months.indexOf (end.replace(/^(...).+$/, '$1'));
+
+			// AKJC HERE : the numMonths is wrong : numMonths : start, end, indexStart, indexEnd  :  40 Mar 2023 Jun 2023 2 5
+
+		console.log ("numMonths : start, end, indexStart, indexEnd  : ", numMonths, monthArray[0].title, monthArray[monthArray.length-1].title, months.indexOf (start.replace(/^(...).+$/, '$1')), months.indexOf (end.replace(/^(...).+$/, '$1')));
+		let indexFirstMonth = months.indexOf (start.replace(/^(...).+$/, '$1'))
+		for (let i=0; i < years.length ; i++) {
+			for (let j=0; j < numMonths; j++) {
+				let hashKey;
+				if (i == 0) {
+					hashKey = months[indexFirstMonth + j] + " " + years[i];
+				} else {
+					hashKey = "Jan " + years[i];
+				}
 				if (typeof monthsHash[hashKey] === "undefined") {
 					let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
 					thisBlankItem.title = hashKey;
 					monthArray.push (thisBlankItem);
-				}
-				if (hashKey == monthArray[monthArray.length-1].title) {
-					break;
 				}
 			}
 		}
@@ -722,7 +762,7 @@ const App: () => Node = () => {
                     {dataArray.map ((data, index) => (
                         <View key={index} style={styles.historyTrackBar}>
 							<Text style={{fontSize : 10}}>
-                                 {data.numTracks} track{data.numTracks > 1 ? 's' : ''} {convertMetresToUnits(data.totalDistance)}{units} : {data.totalTime}
+                                 {data.numTracks} track{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''} {convertMetresToUnits(data.totalDistance)}{units} : {data.totalTime}
                             </Text>
 							<View style={{
 								backgroundColor : 'white',
