@@ -385,6 +385,15 @@ const App: () => Node = () => {
 			}
 			testData.push (thisTrack);
 		}
+		let thisTrack = {
+			date      : new Date("Sat 23 July 2022").toString(),
+			distance  : 2.30,
+			time      : "00:12:34",
+			units     : units,
+			speed     : 17.0,
+			comment   : "Test Track 2022",
+		}
+		testData.push (thisTrack);
 		console.log ("testData : ", testData);
 		testData.sort(function(a,b) {
 			return new Date(a.date) - new Date(b.date);
@@ -679,41 +688,56 @@ const App: () => Node = () => {
 		// "Mar 2023"
 		//
 		let monthsHash = {};
+		let yearsHash  = [];
 		let years      = [];
 		monthArray.forEach ((item, index) => {
 			monthsHash[item.title] = 1;
-			years.push(item.title.replace(/^..../, ''));
+			let year = item.title.replace(/^..../, '');
+			if (typeof yearsHash[year] === "undefined") {
+				years.push(year);
+			}
+			yearsHash[year] = 1;
 		});
+		console.log ("years : ", years);
 		let start     = monthArray[0].title;
 		let end       = monthArray[monthArray.length-1].title;
 
+		// Number of months is : 
 		// Years*12 minus Months before first one munus Months after last one. Plus one.
 		//
-		let numMonths = (years.length * 12)
+		let numMonths = (Object.keys(yearsHash).length * 12)
 			+ 1
 			- months.indexOf (start.replace(/^(...).+$/, '$1'))
 			- 12
 			+ months.indexOf (end.replace(/^(...).+$/, '$1'));
 
-			// AKJC HERE : the numMonths is wrong : numMonths : start, end, indexStart, indexEnd  :  40 Mar 2023 Jun 2023 2 5
-
 		console.log ("numMonths : start, end, indexStart, indexEnd  : ", numMonths, monthArray[0].title, monthArray[monthArray.length-1].title, months.indexOf (start.replace(/^(...).+$/, '$1')), months.indexOf (end.replace(/^(...).+$/, '$1')));
+
+		// Get the array index of the first month we see data for.
+		//
 		let indexFirstMonth = months.indexOf (start.replace(/^(...).+$/, '$1'))
-		for (let i=0; i < years.length ; i++) {
-			for (let j=0; j < numMonths; j++) {
-				let hashKey;
-				if (i == 0) {
-					hashKey = months[indexFirstMonth + j] + " " + years[i];
-				} else {
-					hashKey = "Jan " + years[i];
-				}
-				if (typeof monthsHash[hashKey] === "undefined") {
-					let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
-					thisBlankItem.title = hashKey;
-					monthArray.push (thisBlankItem);
-				}
+		let yearIndex       = 0;
+
+		// Get numMonths hashKeys to compare with data.
+		//
+		for (let j=0; j < numMonths; j++) {
+			let thisYear = years[yearIndex];
+			let hashKey;
+			if (indexFirstMonth > 11) {
+				yearIndex++;
+				indexFirstMonth = 0;
 			}
+			if (yearIndex > (years.length - 1)) break;
+			hashKey = months[indexFirstMonth] + " " + years[yearIndex];
+			console.log ("hashKey, indexFirstMonth, j : ", hashKey, indexFirstMonth, j);
+			if (typeof monthsHash[hashKey] === "undefined") {
+				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+				thisBlankItem.title = hashKey;
+				monthArray.push (thisBlankItem);
+			}
+			indexFirstMonth++;
 		}
+
 		monthArray.sort(function(a,b) {
 			return new Date("01 " + a.title) - new Date("01 " + b.title);
 		});
