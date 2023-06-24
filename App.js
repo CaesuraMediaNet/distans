@@ -327,7 +327,8 @@ const App: () => Node = () => {
 	}
 
 	function calculateSpeed () {
-		let thisSpeed = 3600 * (trackDistanceRef.current / timeTaken );
+		let thisSpeed = 3600 * (trackDistanceRef.current / timeTaken ); // meters per hour.
+		console.log ("thisSpeed : ", thisSpeed);
 		setSpeed (thisSpeed);
 		return thisSpeed;
 	}
@@ -359,6 +360,7 @@ const App: () => Node = () => {
 	function onStopPress () {
 		setAction('stop');
 		stopLocationUpdates();
+		calculateSpeed(); // setSpeed called in here.
 		trackDistanceRef.current > 0.0 && setShowSaveModal(true);
 	}
 	async function saveTrack (comment) {
@@ -366,15 +368,13 @@ const App: () => Node = () => {
 		// Don't save a track with no miles or km in.
 		//
 		if (trackDistanceRef.current > 0.0) {
-			let thisSpeed      = calculateSpeed();
 			let currentHistory = history.slice();
-
 			let thisTrack = {
 				date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
 				distance  : trackDistanceRef.current,
 				time      : new Date(timeTaken * 1000).toISOString().slice(11, 19),
 				units     : units,
-				speed     : thisSpeed,
+				speed     : speed,
 				comment   : comment,
 			};
 			await addTrack (thisTrack);
@@ -506,7 +506,7 @@ const App: () => Node = () => {
 					</Text>
 					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
-					<Text style={styles.medText}>{action === 'stop' ? convertMetresToUnits(speed)+units.charAt(0)+'ph' : ''}</Text>
+					<Text style={styles.medText}>{convertMetresToUnits(speed)}{units.charAt(0)}ph</Text>
 				</View>
 				{action.match(/start/) && <View>
 					<TouchableOpacity
@@ -535,17 +535,17 @@ const App: () => Node = () => {
 	function calculateAverages(hash) {
 		let returnArray = [];
 		for (const [title, tracks] of Object.entries(hash)) {
-			let totalDistance = 0;
-			let totalTime     = 0;
+			let totalDistance = 0.0;
+			let totalTime     = 0.0;
 			tracks.forEach ((thisTrack, index) => {
 				totalDistance += parseFloat(thisTrack.distance);
 
 				// https://stackoverflow.com/questions/9640266/convert-hhmmss-string-to-seconds-only-in-javascript
 				//
 				let timeS     = thisTrack.time.split(':').reduce((acc,time) => (60 * acc) + +time);
-				totalTime     += timeS;
+				totalTime     += parseFloat(timeS);
 			});
-			let averageSpeed = totalDistance / totalTime;
+			let averageSpeed = 3600.0 * (totalDistance / totalTime); // meters per hour.
 
 			// Convert seconds back to HH:MM:SS
 			//
@@ -793,7 +793,7 @@ const App: () => Node = () => {
 								</Text>
 							}
 							<Text style={styles.textSmall}>
-								{convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime}
+								{convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime} / {convertMetresToUnits(data.averageSpeed)}{units.charAt(0)}ph
                             </Text>
 							<View style={{
 								backgroundColor : 'white',
