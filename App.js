@@ -77,7 +77,7 @@ import SaveModal    from './components/SaveModal';
 //
 // Debug
 //
-const showClearHistory        = true;
+const showClearHistory        = false;
 const generateTestTrackButton = false;
 
 // No magic numbers.
@@ -506,7 +506,7 @@ const App: () => Node = () => {
 					</Text>
 					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
-					<Text style={styles.medText}>{convertMetresToUnits(speed)}{units.charAt(0)}ph</Text>
+					<Text style={styles.medText}>{speed > 0.0 ? convertMetresToUnits(speed)+units.charAt(0)+'ph' : ''}</Text>
 				</View>
 				{action.match(/start/) && <View>
 					<TouchableOpacity
