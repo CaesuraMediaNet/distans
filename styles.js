@@ -4,9 +4,6 @@ import {
 } from 'react-native';
 
 export default styles = StyleSheet.create({
-	typeFace              : {
-		fontFamily        : 'PTSans-Regular',
-	},
     container             : {
         padding           : 10,
 		fontFamily        : 'PTSans-Regular',
@@ -15,24 +12,50 @@ export default styles = StyleSheet.create({
 		fontFamily        : 'PTSans-Bold',
         fontSize          : 36,
     },
-    distributed           : {
-        padding           : 5,
-        marginTop         : 7,
-        marginBottom      : 7,
-        flex              : 1,
-        flexDirection     : 'row',
-        flexWrap          : 'wrap',
-        alignItems        : 'center',
-        borderWidth       : 1,
-        borderRadius      : 4,
-        borderColor       : '#d018ec',
+    titleMed              : {
+		fontFamily        : 'PTSans-Bold',
+        fontSize          : 24,
     },
-    help                  : {
-        position          : "absolute",
-        top               : 10,
-        right             : 0,
-        zIndex            : 1,
-    },
+	textSmall             : {
+		fontFamily        : 'PTSans-Regular',
+        fontSize          : 10,
+	},
+	textBoldSmall         : {
+		fontFamily        : 'PTSans-Bold',
+        fontSize          : 10,
+	},
+	textBoldMed           : {
+		fontFamily        : 'PTSans-Bold',
+        fontSize          : 24,
+	},
+	settingsContainer     : {
+		marginTop         : '33%',
+		flex              : 1,
+		justifyContent    : 'space-around',
+		alignItems        : 'center',
+		flexDirection     : 'row',
+	},
+	settingsSave          : {
+		marginTop         : '33%',
+	},
+	mainPageContainer     : {
+		borderWidth       : 1,
+		borderRadius      : 5,
+		borderColor       : "#d018ec",
+		marginTop         : 10,
+		marginBottom      : 10,
+		paddingTop        : 10,
+		paddingBottom     : 10,
+		paddingLeft       : 10,
+		paddingRight      : 10,
+	},
+	historyScrollView     : {
+		marginTop         : 10,
+		marginBottom      : 20,
+	},
+	fontAwesomeIcon       : {
+		alignSelf         : 'center',
+	},
     spaceEvenly           : {
         flexDirection     : "row",
         justifyContent    : "space-evenly",
@@ -43,22 +66,13 @@ export default styles = StyleSheet.create({
         justifyContent    : "space-between",
         alignItems        : 'center',
     },
-    greenBox              : {
+    mauveBox              : {
         marginTop         : 7,
         marginBottom      : 7,
         padding           : 5,
         borderWidth       : 1,
         borderRadius      : 4,
         borderColor       : '#d018ec',
-    },
-    shadow                : {
-        shadowOffset      : {
-            width         : 2,
-            height        : 1
-        },
-        shadowColor       : '#d018ec',
-        shadowOpacity     : 0.5,
-        shadowRadius      : 2,
     },
     button                : {
         alignItems        : 'center',
@@ -86,42 +100,6 @@ export default styles = StyleSheet.create({
         color             : 'white',
 		fontFamily        : 'PTSans-Regular',
     },
-	iconStyle             : {
-        color             : '#d018ec',
-        padding           : 7,
-        alignItems        : 'center',
-        margin            : 1,
-    },
-    selectedStyle         : {
-        padding           : 5,
-        borderWidth       : 2,
-        borderRadius      : 4,
-        borderColor       : '#d018ec',
-        alignItems        : 'center',
-        margin            : 1,
-    },
-    wonStyle              : {
-        color             : '#d018ec',
-        padding           : 7,
-        opacity           : 0.6,
-        alignItems        : 'center',
-        margin            : 1,
-    },
-    instructionP          : {
-        marginTop         : 10,
-        marginBottom      : 10,
-		fontFamily        : 'PTSans-Regular',
-    },
-    header                : {
-        marginTop         : 25,
-        fontSize          : 24,
-		fontFamily        : 'PTSans-Regular',
-    },
-    flexible              : {
-        flex              : 1,
-        flexDirection     : 'row',
-        flexWrap          : 'wrap',
-    },
 	centeredView          : {
 		flex              : 1,
 		justifyContent    : 'center',
@@ -143,10 +121,6 @@ export default styles = StyleSheet.create({
 		shadowOpacity     : 0.25,
 		shadowRadius      : 4,
 		elevation         : 5,
-		fontFamily        : 'PTSans-Regular',
-	},
-	buttonOpen            : {
-		backgroundColor   : '#d018ec',
 		fontFamily        : 'PTSans-Regular',
 	},
 	buttonClose           : {
@@ -171,19 +145,6 @@ export default styles = StyleSheet.create({
 	centre                : {
 		alignItems        : 'center',
 	},
-	loading               : {
-		alignItems        : 'center',
-		fontFamily        : 'PTSans-Regular',
-		fontSize          : 21,
-        color             : '#d018ec',
-		marginTop         : 10,
-		marginBottom      : 10,
-	},
-	sectionText           : {
-		fontSize          : 18,
-		marginTop         : 7,
-		fontFamily        : 'PTSans-Regular',
-	},
 	medText               : {
 		fontSize          : 16,
 		fontFamily        : 'PTSans-Regular',
@@ -191,22 +152,6 @@ export default styles = StyleSheet.create({
 	bigText               : {
 		fontSize          : 24,
 		fontFamily        : 'PTSans-Regular',
-	},
-	videoContainer        : {
-		width             : "100%",
-		height            : 425,
-	},
-	video                 : {
-		position          : 'absolute',
-		top               : 0,
-		left              : 0,
-		right             : 0,
-		bottom            : 0,
-		backgroundColor   : 'white',
-		justifyContent    : 'center',
-	},
-	instructionsHeader    : {
-		marginTop         : 10,
 	},
 	logoImage             : {
 		width             : 35,

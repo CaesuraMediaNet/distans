@@ -54,7 +54,6 @@ import {
 
 // Other community libs.
 //
-// https://www.npmjs.com/package/react-native-drop-shadow
 import SplashScreen   from 'react-native-splash-screen';
 
 // GeoLoc et al.
@@ -79,9 +78,9 @@ import SaveModal    from './components/SaveModal';
 const barChartHeight          = 100;
 const maxHistoryBarWidth      = 65;
 const historyWidthOffset      = 25;
-const showClearHistory        = true;
+const showClearHistory        = false;
 const distanceResolution      = 5;
-const generateTestTrackButton = true;
+const generateTestTrackButton = false;
 const months                  = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let blankItem                 = {
 	"averageSpeed"  : 0.0,
@@ -90,6 +89,7 @@ let blankItem                 = {
 	"totalDistance" : 0,
 	"totalTime"     : "00:00:00",
 };
+const maxRecentTracks         = 50;
 
 
 
@@ -427,7 +427,7 @@ const App: () => Node = () => {
 	}
 	function Header ({ page }) {
 		return (
-			<View style={[styles.spaceBetween, styles.greenBox]}>
+			<View style={[styles.spaceBetween, styles.mauveBox]}>
 				<Image
 					source={require ("./src/assets/images/distans-icon.png")}
 					style={styles.logoImage}
@@ -464,17 +464,7 @@ const App: () => Node = () => {
 		return (
 			<>
 			<Header page={'main'}/>
-			<View style={{
-				borderWidth   : 1,
-				borderRadius  : 5,
-				borderColor   : "#d018ec",
-				marginTop     : 10,
-				marginBottom  : 10,
-				paddingTop    : 10,
-				paddingBottom : 10,
-				paddingLeft   : 10,
-				paddingRight  : 10,
-			}}>
+			<View style={styles.mainPageContainer}>
 				{!currentLocation?.coords?.latitude &&
 					<View style={styles.centre}>
 						<ActivityIndicator size="large" color="#d018ec" />
@@ -776,7 +766,7 @@ const App: () => Node = () => {
 		}
 		return (
 			<ScrollView
-                style={{marginTop : 10, marginBottom : 20}}
+                style={styles.historyScrollView}
                 ref={thisScrollRef}
                 horizontal={true}
                 persistentScrollbar={true}
@@ -785,8 +775,18 @@ const App: () => Node = () => {
                 <View style={[styles.historyContainer, {width : chartWidth}]}>
                     {dataArray.map ((data, index) => (
                         <View key={index} style={styles.historyTrackBar}>
-							<Text style={{fontSize : 10}}>
-                                 {data.numTracks} track{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''} {convertMetresToUnits(data.totalDistance)}{units} : {data.totalTime}
+							{data.comment && 
+								<Text style={styles.textBoldSmall}>
+									{data.comment}
+								</Text>
+							}
+							{data.numTracks !== -1 &&
+								<Text style={styles.textSmall}>
+									{data.numTracks} track{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''}
+								</Text>
+							}
+							<Text style={styles.textSmall}>
+								{convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime}
                             </Text>
 							<View style={{
 								backgroundColor : 'white',
@@ -800,7 +800,7 @@ const App: () => Node = () => {
 								height          : getStatsBarHeights(dataArray, data).colourHeight,
 							}}>
 							</View>
-							<Text style={{fontSize : 10}}>{data.title}</Text>
+							<Text style={styles.textBoldSmall}>{data.title}</Text>
 						</View>
 					))}
 				</View>
@@ -873,8 +873,26 @@ const App: () => Node = () => {
 		monthArray = fillInMonthGaps(monthArray);
 		yearArray  = fillInYearGaps(yearArray);
 
+		// Recently set is just history but with matching key/value pairs of the above.
+		//
+		let recentArray = [];
+		console.log ("history : ", history);
+		history.slice(0,maxRecentTracks).forEach ((track, index) => {
+			recentArray.push({
+				comment       : track.comment,
+                title         : track.date,
+                averageSpeed  : track.speed,
+                totalDistance : track.distance,
+                totalTime     : track.time,
+                numTracks     : -1, // ie don't show this.
+            });
+		});
+
 		return (
 			<View>
+				<Text      key={'History'}  style={styles.titleMed}>History</Text>
+				<Text      key={'Recently'} style={styles.bigText}>Recently</Text>
+				<ShowStats key={'recent'}   dataArray={recentArray} />
 				<Text      key={'Daily'}    style={styles.bigText}>Daily</Text>
 				<ShowStats key={'day'}      dataArray={dayArray} />
 				<Text      key={'Weekly'}   style={styles.bigText}>Weekly</Text>
@@ -927,12 +945,12 @@ const App: () => Node = () => {
 		return (
 			<>
 			<Header page={'settings'} />
-			<View style={{marginTop : '33%', flex : 1, justifyContent : 'space-around', alignItems : 'center', flexDirection : 'row'}}>
+			<View style={styles.settingsContainer}>
 				<TouchableOpacity
 					onPress={() => setSelected('miles')}
 				>
 					<FontAwesomeIcon 
-						style={{alignSelf : 'center'}}
+						style={styles.fontAwesomeIcon}
 						color={selected === 'miles' ? '#d018ec' : 'dimgray'}
 						size={50}
 						icon={faCircleDot}
@@ -943,7 +961,7 @@ const App: () => Node = () => {
 					onPress={() => setSelected('km')}
 				>
 					<FontAwesomeIcon
-						style={{alignSelf : 'center'}}
+						style={styles.fontAwesomeIcon}
 						color={selected === 'km' ? '#d018ec' : 'dimgray'}
 						size={50}
 						icon={faCircleDot}
@@ -952,7 +970,7 @@ const App: () => Node = () => {
 				</TouchableOpacity>
 			</View>
 			<View
-				style={{marginTop : '33%'}}
+				style={styles.settingsSave}
 			>
 				<TouchableOpacity
 					style={styles.button}
