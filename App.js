@@ -75,12 +75,17 @@ import SaveModal    from './components/SaveModal';
 
 // Constants.
 //
+// Debug
+//
+const showClearHistory        = true;
+const generateTestTrackButton = false;
+
+// No magic numbers.
+//
 const barChartHeight          = 100;
 const maxHistoryBarWidth      = 65;
 const historyWidthOffset      = 25;
-const showClearHistory        = false;
 const distanceResolution      = 5;
-const generateTestTrackButton = false;
 const months                  = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let blankItem                 = {
 	"averageSpeed"  : 0.0,
@@ -97,27 +102,28 @@ const maxRecentTracks         = 50;
 //
 const App: () => Node = () => {
 
-	const secondsSinceEpoch                       = Math.round(Date.now() / 1000);
-	const [startTimeS, setStartTimeS]             = useState(secondsSinceEpoch);
-	const [timeTaken, setTimeTaken]               = useState(0);
-	const [units, setUnits]                       = useState('miles');
-	const [action, setAction]                     = useState('stop');
-	const [intervalId, setIntervalId]             = useState(0);
-	const [currentLocation, setCurrentLocation]   = useState(null);
-	const [speed, setSpeed]                       = useState('');
-	const [history, setHistory]                   = useState ([]);
-	const [showSaveModal, setShowSaveModal]       = useState (false);
-	const [comment, setComment]                   = useState('');
-	const [historyPage, setHistoryPage]           = useState(false);
-	const [settingsPage, setSettingsPage]         = useState(false);
-	const [timeOfPause, setTimeOfPause]           = useState(secondsSinceEpoch);
-	const [pausedTime, setPausedTime]             = useState(0);
+	const secondsSinceEpoch                        = Math.round(Date.now() / 1000);
+	const [startTimeS, setStartTimeS]              = useState(secondsSinceEpoch);
+	const [timeTaken, setTimeTaken]                = useState(0);
+	const [units, setUnits]                        = useState('miles');
+	const [action, setAction]                      = useState('stop');
+	const [intervalId, setIntervalId]              = useState(0);
+	const [currentLocation, setCurrentLocation]    = useState(null);
+	const [speed, setSpeed]                        = useState('');
+	const [history, setHistory]                    = useState ([]);
+	const [showSaveModal, setShowSaveModal]        = useState(false);
+	const [comment, setComment]                    = useState('');
+	const [historyPage, setHistoryPage]            = useState(false);
+	const [settingsPage, setSettingsPage]          = useState(false);
+	const [timeOfPause, setTimeOfPause]            = useState(secondsSinceEpoch);
+	const [pausedTime, setPausedTime]              = useState(0);
+	const [timerDays, setTimerDays]                = useState('');
 
-	const trackDistanceRef                        = useRef(0);
-	const position1Ref                            = useRef({});
-	const watchId                                 = useRef();
-	const pageRef                                 = useRef();
-	const scrollRef                               = useRef();
+	const trackDistanceRef                         = useRef(0);
+	const position1Ref                             = useRef({});
+	const watchId                                  = useRef();
+	const pageRef                                  = useRef();
+	const scrollRef                                = useRef();
 
     const geoConfig = {
         acuracy : {
@@ -145,6 +151,10 @@ const App: () => Node = () => {
 			const secondsSinceEpoch = Math.round(Date.now() / 1000);
 			const secondsElapsed    = secondsSinceEpoch - startTimeS - pausedTime;
 			setTimeTaken (secondsElapsed);
+			if (secondsElapsed > (24 * 60 * 60)) {
+				let days = days = Math.floor(secondsElapsed / (3600*24));
+				setTimerDays(days + "d ");
+			}
 		}
 		if (action === 'stop') {
 			clearInterval(intervalId);
@@ -329,6 +339,7 @@ const App: () => Node = () => {
 		setStartTimeS              (secondsSinceEpoch);
 		setTimeTaken               (0);
 		getLocationUpdates         ();
+		setSpeed                   (0);
 	}
 	function onPausePress () {
 		setAction          ('pause');
@@ -491,7 +502,7 @@ const App: () => Node = () => {
 						{convertMetresToUnits(trackDistanceRef?.current || 0.0)} {units}
 					</Text>
 					<Text style={styles.title}>
-						{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
+						{timerDays}{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
 					</Text>
 					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
 					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
@@ -672,7 +683,6 @@ const App: () => Node = () => {
 		return weekArray;
 	}
 	function fillInMonthGaps(monthArray){
-		console.log ("monthArray : ", monthArray);
 
 		// First get a record of the months we have data for nd the years span.
 		// "Mar 2023"
@@ -688,7 +698,6 @@ const App: () => Node = () => {
 			}
 			yearsHash[year] = 1;
 		});
-		console.log ("years : ", years);
 		let start     = monthArray[0].title;
 		let end       = monthArray[monthArray.length-1].title;
 
@@ -701,7 +710,6 @@ const App: () => Node = () => {
 			- 12
 			+ months.indexOf (end.replace(/^(...).+$/, '$1'));
 
-		console.log ("numMonths : start, end, indexStart, indexEnd  : ", numMonths, monthArray[0].title, monthArray[monthArray.length-1].title, months.indexOf (start.replace(/^(...).+$/, '$1')), months.indexOf (end.replace(/^(...).+$/, '$1')));
 
 		// Get the array index of the first month we see data for.
 		//
@@ -719,7 +727,6 @@ const App: () => Node = () => {
 			}
 			if (yearIndex > (years.length - 1)) break;
 			hashKey = months[indexFirstMonth] + " " + years[yearIndex];
-			console.log ("hashKey, indexFirstMonth, j : ", hashKey, indexFirstMonth, j);
 			if (typeof monthsHash[hashKey] === "undefined") {
 				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
 				thisBlankItem.title = hashKey;
@@ -876,7 +883,6 @@ const App: () => Node = () => {
 		// Recently set is just history but with matching key/value pairs of the above.
 		//
 		let recentArray = [];
-		console.log ("history : ", history);
 		history.slice(0,maxRecentTracks).forEach ((track, index) => {
 			recentArray.push({
 				comment       : track.comment,
