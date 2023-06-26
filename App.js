@@ -331,17 +331,16 @@ const App: () => Node = () => {
 		});
 	};
 
-	function convertMetresToUnits (metres) {
+	function convertMetresToUnits (metres, fix) {
 		if (units === "miles") {
-			return (metres / 1609.34).toFixed(distanceResolution);
+			return (metres / 1609.34).toFixed(fix ? fix : distanceResolution);
 		} else {
-			return (metres / 1000.00).toFixed(distanceResolution);
+			return (metres / 1000.00).toFixed(fix ? fix : distanceResolution);
 		}
 	}
 
 	function calculateSpeed () {
 		let thisSpeed = 3600 * (trackDistanceRef.current / timeTaken ); // meters per hour.
-		console.log ("thisSpeed : ", thisSpeed);
 		setSpeed (thisSpeed);
 		return thisSpeed;
 	}
@@ -398,17 +397,62 @@ const App: () => Node = () => {
 
 	async function testTracks () {
 		let testData = [];
-		for (let i=0; i < 20; i++) {
+		let comments = [
+			"To Dad\'s",
+			"Walk",
+			"Grandma birthday walk",
+			"To Jon\'s work",
+			"Run",
+			"Fred",
+			"Drive to work",
+			"Ride on Chestnut",
+			"Walk",
+			"Walk",
+			"Run",
+			"David\'s pad",
+			"Walk",
+			"Run, slow.",
+			"To Dad\'s",
+			"Graham took this over!",
+			"Drive to Work",
+			"Walk",
+			"Run",
+			"Chestnut",
+		];
+		let distances = [
+			10000,
+			7000,
+			3000,
+			45000,
+			10000,
+			20000,
+			15000,
+			15000,
+			6000,
+		];
+		let times = [
+			754, // "00:12:34",
+			5419, //"01:30:19",
+			3765, // "01:02:45",
+			3313, //"00:55:13",
+			4378, // "01:12:58",
+			1654, //"00:27:34",
+			2361, //"00:39:21",
+			6313, //"01:45:13",
+			7376, // "02:02:56",
+		];
+		for (let i=0; i < 9; i++) {
 			let thisTrack = {
-				date : new Date(new Date() - Math.random()*(1e+10)).toLocaleString('en-GB', { timeZone: 'UTC' }),
-				distance  : i + 2,
-                time      : new Date((i + 1) * 10000).toISOString().slice(11, 19),
+				date : new Date(new Date() - Math.random()*(1e+9)).toLocaleString('en-GB', { timeZone: 'UTC' }),
+				distance  : distances[i],
+                time      : new Date(1000 * times[i]).toISOString().slice(11, 19),
                 units     : units,
-                speed     : 17.0,
-                comment   : "Test Track " + i,
+                speed     : 3600.0 * (distances[i] / times[i]),
+                comment   : comments[i],
 			}
 			testData.push (thisTrack);
 		}
+		/*
 		let thisTrack = {
 			date      : new Date("Sat 23 July 2022").toString(),
 			distance  : 2.30,
@@ -418,6 +462,7 @@ const App: () => Node = () => {
 			comment   : "Test Track 2022",
 		}
 		testData.push (thisTrack);
+		*/
 		console.log ("testData : ", testData);
 		testData.sort(function(a,b) {
 			return new Date(a.date) - new Date(b.date);
@@ -802,11 +847,11 @@ const App: () => Node = () => {
 							}
 							{data.numTracks !== -1 &&
 								<Text style={styles.textSmall}>
-									{data.numTracks} journ{data.numTracks > 1 || data.numTracks == 0 ? 'ies' : 'ey'}
+									{data.numTracks} journey{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''}
 								</Text>
 							}
 							<Text style={styles.textSmall}>
-								{convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime} / {convertMetresToUnits(data.averageSpeed)}{units.charAt(0)}ph
+								{convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime} / {convertMetresToUnits(data.averageSpeed, 2)}{units.charAt(0)}ph
                             </Text>
 							<View style={{
 								backgroundColor : 'white',
