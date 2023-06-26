@@ -153,6 +153,12 @@ export default styles = StyleSheet.create({
 		fontSize          : 24,
 		fontFamily        : 'PTSans-Regular',
 	},
+	permsText             : {
+		fontSize          : 12,
+		fontFamily        : 'PTSans-Regular',
+		marginTop         : 5,
+		marginBottom      : 5,
+	},
 	logoImage             : {
 		width             : 35,
 		height            : 35,

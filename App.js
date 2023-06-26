@@ -31,6 +31,7 @@ import {
 	Dimensions,
 	BackHandler,
 	ActivityIndicator,
+	Linking,
 } from 'react-native';
 
 // FontAwesome.
@@ -88,13 +89,16 @@ const historyWidthOffset      = 25;
 const distanceResolution      = 5;
 const months                  = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let blankItem                 = {
-	"averageSpeed"  : 0.0,
-	"numTracks"     : 0,
-	"title"         : "",
-	"totalDistance" : 0,
-	"totalTime"     : "00:00:00",
+	'averageSpeed'  : 0.0,
+	'numTracks'     : 0,
+	'title'         : '',
+	'totalDistance' : 0,
+	'totalTime'     : '00:00:00',
 };
 const maxRecentTracks         = 50;
+const distansColour           = '#d018ec';
+const distansGrey             = 'dimgray';
+const distansWhite            = 'white';
 
 
 
@@ -103,6 +107,7 @@ const maxRecentTracks         = 50;
 const App: () => Node = () => {
 
 	const secondsSinceEpoch                        = Math.round(Date.now() / 1000);
+	const [noPermissions,setNoPermissions]         = useState(false);
 	const [startTimeS, setStartTimeS]              = useState(secondsSinceEpoch);
 	const [timeTaken, setTimeTaken]                = useState(0);
 	const [units, setUnits]                        = useState('miles');
@@ -229,31 +234,39 @@ const App: () => Node = () => {
 
 	async function hasLocationPermission () {
 		if (Platform.Version < 23) {
+			setNoPermissions(false);
 			return true;
 		}
 		const hasPermission = await PermissionsAndroid.check(
 			PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
 		);
-		if (hasPermission) return true;
+		if (hasPermission) {
+			setNoPermissions(false);
+			return true;
+		}
 
 		const status = await PermissionsAndroid.request(
 			PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
 		);
 		if (status === PermissionsAndroid.RESULTS.GRANTED) {
-		  return true;
+			setNoPermissions(false);
+			return true;
 		}
 
 		if (status === PermissionsAndroid.RESULTS.DENIED) {
-			ToastAndroid.show("Location permission denied by user.", ToastAndroid.LONG);
+			ToastAndroid.show("Location permission denied by user.", ToastAndroid.SHORT);
 		} else if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-			ToastAndroid.show( "Location permission revoked by user.", ToastAndroid.LONG);
+			ToastAndroid.show( "Location permission revoked by user.", ToastAndroid.SHORT);
 		}
+		setNoPermissions(true);
 		return false;
 	}
 
 	async function getCurrentLocation () {
 		const hasPermission = await hasLocationPermission();
-		if (!hasPermission) return;
+		if (!hasPermission) {
+			return 
+		}
 
 		Geolocation.getCurrentPosition(
 			(position) => {
@@ -446,25 +459,25 @@ const App: () => Node = () => {
 				<Text style={styles.title}>
 					Distans
 				</Text>
-				{page.match(/main|history/) &&
+				{page.match(/main|history|nopermissions/) &&
 				<TouchableOpacity
 					onPress={() => showSettingsPage ()}
 				>
-					<FontAwesomeIcon  color={action !== 'stop' ? 'dimgray' : '#d018ec'} size={35} icon={faGear} />
+					<FontAwesomeIcon  color={action !== 'stop' ? distansGrey : distansColour} size={35} icon={faGear} />
 				</TouchableOpacity>
 				}
-				{page.match(/main|settings/) && history.length > 0 &&
+				{page.match(/main|settings|nopermissions/) && history.length > 0 &&
 				<TouchableOpacity
 					onPress={() => showHistoryPage ()}
 				>
-					<FontAwesomeIcon  color={action !== 'stop' ? 'dimgray' : '#d018ec'} size={35} icon={faCalendar} />
+					<FontAwesomeIcon  color={action !== 'stop' ? distansGrey : distansColour} size={35} icon={faCalendar} />
 				</TouchableOpacity>
 				}
-				{page.match(/history|settings/) &&
+				{page.match(/history|settings|nopermissions/) &&
 				<TouchableOpacity
 					onPress={() => showMainPage ()}
 				>
-					<FontAwesomeIcon  color={'#d018ec'} size={35} icon={faHouse} />
+					<FontAwesomeIcon  color={distansColour} size={35} icon={faHouse} />
 				</TouchableOpacity>
 				}
 			</View>
@@ -478,7 +491,7 @@ const App: () => Node = () => {
 			<View style={styles.mainPageContainer}>
 				{!currentLocation?.coords?.latitude &&
 					<View style={styles.centre}>
-						<ActivityIndicator size="large" color="#d018ec" />
+						<ActivityIndicator size="large" color={distansColour} />
 					</View>
 				}
 				{action === 'stop' && currentLocation?.coords?.latitude && <View>
@@ -802,7 +815,7 @@ const App: () => Node = () => {
 							}}>
 							</View>
 							<View style={{
-								backgroundColor : '#d018ec',
+								backgroundColor : distansColour,
 								width           : barWidth,
 								height          : getStatsBarHeights(dataArray, data).colourHeight,
 							}}>
@@ -957,7 +970,7 @@ const App: () => Node = () => {
 				>
 					<FontAwesomeIcon 
 						style={styles.fontAwesomeIcon}
-						color={selected === 'miles' ? '#d018ec' : 'dimgray'}
+						color={selected === 'miles' ? distansColour : distansGrey}
 						size={50}
 						icon={faCircleDot}
 					/>
@@ -968,7 +981,7 @@ const App: () => Node = () => {
 				>
 					<FontAwesomeIcon
 						style={styles.fontAwesomeIcon}
-						color={selected === 'km' ? '#d018ec' : 'dimgray'}
+						color={selected === 'km' ? distansColour : distansGrey}
 						size={50}
 						icon={faCircleDot}
 					/>
@@ -988,8 +1001,59 @@ const App: () => Node = () => {
 			</>
 		);
 	}
+	function settingsTryAgain () {
+		setHistoryPage(false);
+		setSettingsPage(false);
+		Linking.openSettings()
+	}
+	function NoPermissionsPage () {
+		return (
+			<>
+			<Header page={'nopermissions'} />
+			<Text style={styles.titleMed}>Location Permissions</Text>
+			<View style={styles.mainPageContainer}>
+				<Text style={styles.permsText}>
+					Hello, and thank you for downloading this simple, but useful Distans App!
+				</Text>
+				<Text style={styles.permsText}>
+					Is seems to us that you have not allowed the Distans App to have "Location" permissions, 
+					which is a shame because we need your location, in latitude and longitude ("lat/long"),
+					to determine the distances.
+				</Text>
+				<Text style={styles.permsText}>
+					Please be assured, though, that we do not record your lat/long, only the distance between
+					updating lat/long co-ordinates.  No location or distances are ever sent to any server, they 
+					stay, as distance, speed and time only, on your device, within the App. No other App has
+					access to your history of journeys.
+				</Text>
+				<Text style={styles.permsText}>
+					Please go to your Android Settings and change the location preferrances with the button below.
+					And due to the seemingly ever-changing Android Settings pages, it might be easier to uninstal
+					Distans and then re-install it, allowing Distans to have access to your location, which is never
+					recorded, did we say that? :)
+				</Text>
+				<Text style={styles.permsText}>
+					Also, it seems there are some issues with Android permissions settings, which require the Distans App 
+					to be restarted. So please restart Distans once
+					you have kindly updated the settings from the button below. You will keep seeing this page otherwise.
+					We know, not much we can do, sorry.
+				</Text>
+				<Text>   </Text>
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => settingsTryAgain()}
+				>
+					<FontAwesomeIcon  color={distansWhite} size={35} icon={faGear} />
+					<Text style={styles.buttonText}>Go to Android Settings</Text>
+				</TouchableOpacity>
+			</View>
+			</>
+		);
+	}
 
 	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
+	// The convoluted multi-ternary conditionals are my attempt to avoid having to use the
+	// infernal React Navigation bloatware.
 	//
 	return (
 		<SafeAreaView style={styles.container}>
@@ -999,15 +1063,7 @@ const App: () => Node = () => {
 				keyboardShouldPersistTaps='handled'
 				ref={pageRef}
 			>
-				{historyPage ? (
-					<HistoryPage />
-				) : (
-					settingsPage ? (
-						<SettingsPage />
-					) : (
-						<MainPage />
-					)
-				)}
+				{noPermissions ? <NoPermissionsPage /> : historyPage ?  <HistoryPage /> :  settingsPage ?  <SettingsPage /> : <MainPage />}
 			</ScrollView>
 		</SafeAreaView>
 	);
