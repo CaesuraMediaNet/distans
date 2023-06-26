@@ -802,7 +802,7 @@ const App: () => Node = () => {
 							}
 							{data.numTracks !== -1 &&
 								<Text style={styles.textSmall}>
-									{data.numTracks} track{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''}
+									{data.numTracks} journ{data.numTracks > 1 || data.numTracks == 0 ? 'ies' : 'ey'}
 								</Text>
 							}
 							<Text style={styles.textSmall}>
