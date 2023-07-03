@@ -14,43 +14,43 @@ import { memo }      from 'react';
 import type {Node}   from 'react';
 
 import {
-	SafeAreaView,
-	ScrollView,
-	StatusBar,
-	StyleSheet,
-	Text,
-	useColorScheme,
-	View,
-	Button,
-	FlatList,
-	TouchableOpacity,
-	Image,
-	Platform,
-	ToastAndroid,
-	PermissionsAndroid,
-	Dimensions,
-	BackHandler,
-	ActivityIndicator,
-	Linking,
+   SafeAreaView,
+   ScrollView,
+   StatusBar,
+   StyleSheet,
+   Text,
+   useColorScheme,
+   View,
+   Button,
+   FlatList,
+   TouchableOpacity,
+   Image,
+   Platform,
+   ToastAndroid,
+   PermissionsAndroid,
+   Dimensions,
+   BackHandler,
+   ActivityIndicator,
+   Linking,
 } from 'react-native';
 
 // FontAwesome.
 //
 import {
-	Colors,
+   Colors,
 } from 'react-native/Libraries/NewAppScreen';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import {
-	faQuestion,
-	faPlus,
-	faMinus,
-	faPlay,
-	faGear,
-	faTrash,
-	faCalendar,
-	faHouse,
-	faCircleDot,
-	faFloppyDisk,
+   faQuestion,
+   faPlus,
+   faMinus,
+   faPlay,
+   faGear,
+   faTrash,
+   faCalendar,
+   faHouse,
+   faCircleDot,
+   faFloppyDisk,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Other community libs.
@@ -59,18 +59,20 @@ import SplashScreen   from 'react-native-splash-screen';
 
 // GeoLoc et al.
 //
-import Geolocation, { GeoPosition } from "react-native-geolocation-service";
+//import Geolocation, { GeoPosition } from "react-native-geolocation-service";
+import Geolocation                  from '@react-native-community/geolocation';
 import VIForegroundService          from "@voximplant/react-native-foreground-service";
 import AsyncStorage                 from "@react-native-async-storage/async-storage";
 import { getPreciseDistance }       from "geolib";
+import haversine                    from 'haversine-distance';
 
 // Local Components.
 //
 import styles       from './styles';
 import {
-	addTrack,
-	getTracks,
-	clearTracks,
+   addTrack,
+   getTracks,
+   clearTracks,
 }                   from './functions/savedTracks';
 import SaveModal    from './components/SaveModal';
 
@@ -89,11 +91,11 @@ const historyWidthOffset      = 25;
 const distanceResolution      = 5;
 const months                  = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let blankItem                 = {
-	'averageSpeed'  : 0.0,
-	'numTracks'     : 0,
-	'title'         : '',
-	'totalDistance' : 0,
-	'totalTime'     : '00:00:00',
+   'averageSpeed'  : 0.0,
+   'numTracks'     : 0,
+   'title'         : '',
+   'totalDistance' : 0,
+   'totalTime'     : '00:00:00',
 };
 const maxRecentTracks         = 50;
 const distansColour           = '#d018ec';
@@ -106,30 +108,35 @@ const distansWhite            = 'white';
 //
 const App: () => Node = () => {
 
-	const secondsSinceEpoch                        = Math.round(Date.now() / 1000);
-	const [noPermissions,setNoPermissions]         = useState(false);
-	const [startTimeS, setStartTimeS]              = useState(secondsSinceEpoch);
-	const [timeTaken, setTimeTaken]                = useState(0);
-	const [units, setUnits]                        = useState('miles');
-	const [action, setAction]                      = useState('stop');
-	const [intervalId, setIntervalId]              = useState(0);
-	const [currentLocation, setCurrentLocation]    = useState(null);
-	const [speed, setSpeed]                        = useState('');
-	const [history, setHistory]                    = useState ([]);
-	const [showSaveModal, setShowSaveModal]        = useState(false);
-	const [comment, setComment]                    = useState('');
-	const [historyPage, setHistoryPage]            = useState(false);
-	const [settingsPage, setSettingsPage]          = useState(false);
-	const [timeOfPause, setTimeOfPause]            = useState(secondsSinceEpoch);
-	const [pausedTime, setPausedTime]              = useState(0);
-	const [timerDays, setTimerDays]                = useState('');
+   const secondsSinceEpoch                        = Math.round(Date.now() / 1000);
+   const [noPermissions,setNoPermissions]         = useState(false);
+   const [startTimeS, setStartTimeS]              = useState(secondsSinceEpoch);
+   const [timeTaken, setTimeTaken]                = useState(0);
+   const [units, setUnits]                        = useState('miles');
+   const [action, setAction]                      = useState('stop');
+   const [intervalId, setIntervalId]              = useState(0);
+   const [currentLocation, setCurrentLocation]    = useState(null);
+   const [speed, setSpeed]                        = useState('');
+   const [history, setHistory]                    = useState ([]);
+   const [showSaveModal, setShowSaveModal]        = useState(false);
+   const [comment, setComment]                    = useState('');
+   const [historyPage, setHistoryPage]            = useState(false);
+   const [settingsPage, setSettingsPage]          = useState(false);
+   const [timeOfPause, setTimeOfPause]            = useState(secondsSinceEpoch);
+   const [pausedTime, setPausedTime]              = useState(0);
+   const [timerDays, setTimerDays]                = useState('');
 
-	const trackDistanceRef                         = useRef(0);
-	const position1Ref                             = useRef({});
-	const watchId                                  = useRef();
-	const pageRef                                  = useRef();
-	const scrollRef                                = useRef();
+   const trackDistanceRef                         = useRef(0);
+   const position1Ref                             = useRef({});
+   const watchId                                  = useRef();
+   const pageRef                                  = useRef();
+   const scrollRef                                = useRef();
 
+
+    const geoConfig = {
+       enableHighAccuracy   : true,
+    };
+    /*
     const geoConfig = {
         acuracy : {
             android          : "high",
@@ -143,60 +150,68 @@ const App: () => Node = () => {
         forceLocationManager : Platform.Version >= 28, // true : use android's default LocationManager API 
         showLocationDialog   : true,
     };
+    */
 
-	useEffect(() => {
-		console.log ("useEffect : action=", action);
-		console.log ("geoConfig : ", geoConfig);
-		SplashScreen.hide();
-		function updateTimer () {
+   useEffect(() => {
+      console.log ("useEffect : action=", action);
+      console.log ("geoConfig : ", geoConfig);
+      SplashScreen.hide();
+      function updateTimer () {
 
-			// When the phone is off and the App is running the timer seems to stop, so get the 
-			// timeTaken from date differences.
-			//
-			const secondsSinceEpoch = Math.round(Date.now() / 1000);
-			const secondsElapsed    = secondsSinceEpoch - startTimeS - pausedTime;
-			setTimeTaken (secondsElapsed);
-			if (secondsElapsed > (24 * 60 * 60)) {
-				let days = days = Math.floor(secondsElapsed / (3600*24));
-				setTimerDays(days + "d ");
-			}
-		}
-		if (action === 'stop') {
-			clearInterval(intervalId);
-			setPausedTime(0);
-		} else if (action === 'start') {
-			setTimeTaken (0);
-			let thisIntervalId = setInterval (updateTimer, 1000);
-			setIntervalId(thisIntervalId);
-		} else if (action === 'pause') {
-			clearInterval(intervalId);
-			setTimeOfPause(Math.round(Date.now() / 1000));
-		} else if (action === 'restart') {
-			let thisIntervalId = setInterval (updateTimer, 1000);
-			setIntervalId (thisIntervalId);
-		}
-		return () => clearInterval (intervalId);
-	}, [action]);
+         // When the phone is off and the App is running the timer seems to stop, so get the 
+         // timeTaken from date differences.
+         //
+         const secondsSinceEpoch = Math.round(Date.now() / 1000);
+         const secondsElapsed    = secondsSinceEpoch - startTimeS - pausedTime;
+         setTimeTaken (secondsElapsed);
+         if (secondsElapsed > (24 * 60 * 60)) {
+            let days = days = Math.floor(secondsElapsed / (3600*24));
+            setTimerDays(days + "d ");
+         }
+      }
+      if (action === 'stop') {
+         clearInterval(intervalId);
+         setPausedTime(0);
+      } else if (action === 'start') {
+         setTimeTaken (0);
+         let thisIntervalId = setInterval (updateTimer, 1000);
+         setIntervalId(thisIntervalId);
+      } else if (action === 'pause') {
+         clearInterval(intervalId);
+         setTimeOfPause(Math.round(Date.now() / 1000));
+      } else if (action === 'restart') {
+         let thisIntervalId = setInterval (updateTimer, 1000);
+         setIntervalId (thisIntervalId);
+      }
+      return () => clearInterval (intervalId);
+   }, [action]);
 
-	useEffect(() => {
-		trackDistanceRef.current = 0;
-		async function fetchData() {
-			await getCurrentLocation();
-			let currentHistory = await getTracks ();
-			setHistory (currentHistory);
-		}
-		fetchData();
-		return () => {stopLocationUpdates()}
-	}, []);
+   useEffect(() => {
+      Geolocation.setRNConfiguration(
+         {
+            skipPermissionRequests : false,
+            authorizationLevel     : 'auto',
+            locationProvider       : 'auto',
+         }
+      );
+      trackDistanceRef.current = 0;
+      async function fetchData() {
+         await getCurrentLocation();
+         let currentHistory = await getTracks ();
+         setHistory (currentHistory);
+      }
+      fetchData();
+      return () => {stopLocationUpdates()}
+   }, []);
 
     // https://reactnative.dev/docs/backhandler
     //
     useEffect(() => {
         const backAction = () => {
-			if (!historyPage && !settingsPage) {
-				return false;
-			}
-			showMainPage();
+         if (!historyPage && !settingsPage) {
+            return false;
+         }
+         showMainPage();
             return true;
         };
         const backHandler = BackHandler.addEventListener(
@@ -206,631 +221,636 @@ const App: () => Node = () => {
         return () => backHandler.remove();
     },[settingsPage, historyPage]);
 
-	function stopLocationUpdates () {
-		VIForegroundService.getInstance()
-			.stopService()
-			.catch((err) => console.log("VIForegroundService.getInstance error : ", err));
+   function stopLocationUpdates () {
+      VIForegroundService.getInstance()
+         .stopService()
+         .catch((err) => console.log("VIForegroundService.getInstance error : ", err));
 
-		if (watchId.current !== null) {
-			Geolocation.clearWatch(watchId.current);
-			watchId.current = null;
-		}
-	}
+      if (watchId.current !== null) {
+         Geolocation.clearWatch(watchId.current);
+         watchId.current = null;
+      }
+   }
 
-	function pointsDistance (point1, point2) {
-		if (!( point1?.coords?.latitude
-			&& point1?.coords?.longitude
-			&& point2?.coords?.latitude
-			&& point2?.coords?.longitude)) {
-			return 0;
-		}
-		let metres = getPreciseDistance(
-			{ latitude: point1.coords.latitude, longitude: point1.coords.longitude },
-			{ latitude: point2.coords.latitude, longitude: point2.coords.longitude },
-			0.1
-		);
-		return metres;
-	}
+   function pointsDistance (point1, point2) {
+      if (!( point1?.coords?.latitude
+         && point1?.coords?.longitude
+         && point2?.coords?.latitude
+         && point2?.coords?.longitude)) {
+         return 0;
+      }
+      let metres = getPreciseDistance(
+         { latitude: point1.coords.latitude, longitude: point1.coords.longitude },
+         { latitude: point2.coords.latitude, longitude: point2.coords.longitude },
+         0.1
+      );
+      let altDist = haversine(
+         { latitude: point1.coords.latitude, longitude: point1.coords.longitude },
+         { latitude: point2.coords.latitude, longitude: point2.coords.longitude },
+      );
+      console.log ("altDist, metres : ", altDist, metres);
+      return metres;
+   }
 
-	async function hasLocationPermission () {
-		if (Platform.Version < 23) {
-			setNoPermissions(false);
-			return true;
-		}
-		const hasPermission = await PermissionsAndroid.check(
-			PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-		);
-		if (hasPermission) {
-			setNoPermissions(false);
-			return true;
-		}
+   async function hasLocationPermission () {
+      if (Platform.Version < 23) {
+         setNoPermissions(false);
+         return true;
+      }
+      const hasPermission = await PermissionsAndroid.check(
+         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      if (hasPermission) {
+         setNoPermissions(false);
+         return true;
+      }
 
-		const status = await PermissionsAndroid.request(
-			PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-		);
-		if (status === PermissionsAndroid.RESULTS.GRANTED) {
-			setNoPermissions(false);
-			return true;
-		}
+      const status = await PermissionsAndroid.request(
+         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      if (status === PermissionsAndroid.RESULTS.GRANTED) {
+         setNoPermissions(false);
+         return true;
+      }
 
-		if (status === PermissionsAndroid.RESULTS.DENIED) {
-			ToastAndroid.show("Location permission denied by user.", ToastAndroid.SHORT);
-		} else if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-			ToastAndroid.show( "Location permission revoked by user.", ToastAndroid.SHORT);
-		}
-		setNoPermissions(true);
-		return false;
-	}
+      if (status === PermissionsAndroid.RESULTS.DENIED) {
+         ToastAndroid.show("Location permission denied by user.", ToastAndroid.SHORT);
+      } else if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+         ToastAndroid.show( "Location permission revoked by user.", ToastAndroid.SHORT);
+      }
+      setNoPermissions(true);
+      return false;
+   }
 
-	async function getCurrentLocation () {
-		const hasPermission = await hasLocationPermission();
-		if (!hasPermission) {
-			return 
-		}
+   async function getCurrentLocation () {
+      const hasPermission = await hasLocationPermission();
+      if (!hasPermission) {
+         return 
+      }
 
-		Geolocation.getCurrentPosition(
-			(position) => {
-				setCurrentLocation (position);
-				position1Ref.current = position;
-			},
-			(error) => {
-				console.log ("Geolocation.getCurrentPosition : error : ", error);
-			},
-			geoConfig
-		);
-	}
+      Geolocation.getCurrentPosition(
+         (position) => {
+            setCurrentLocation (position);
+            position1Ref.current = position;
+         },
+         (error) => {
+            console.log ("Geolocation.getCurrentPosition : error : ", error);
+         },
+         geoConfig
+      );
+   }
 
-	async function getLocationUpdates () {
-		const hasPermission = await hasLocationPermission();
-		if (!hasPermission)  return; 
+   async function getLocationUpdates () {
+      const hasPermission = await hasLocationPermission();
+      if (!hasPermission)  return; 
 
-		await startForegroundService();
+      await startForegroundService();
 
-		watchId.current = Geolocation.watchPosition(
-			(position2) => {
+      watchId.current = Geolocation.watchPosition(
+         (position2) => {
 
-				// console.log ("Geolocation.watchPosition : ", position2)
-				setCurrentLocation (position2);
+            setCurrentLocation (position2);
 
-				// Update the trackDistanceRef ref not a state, as the state is closed when entering this
-				// function, and we need it to keep being updated depending on previous values.
-				// Other states are fine to set here, as they only have one value.
-				//
-				// https://stackoverflow.com/questions/62806541/how-to-solve-the-react-hook-closure-issue
-				//
-				// Increment the track distance by the new one.
-				//
-				trackDistanceRef.current += pointsDistance (position1Ref.current, position2);
+            // Update the trackDistanceRef ref not a state, as the state is closed when entering this
+            // function, and we need it to keep being updated depending on previous values.
+            // Other states are fine to set here, as they only have one value.
+            //
+            // https://stackoverflow.com/questions/62806541/how-to-solve-the-react-hook-closure-issue
+            //
+            // Increment the track distance by the new one.
+            //
+            trackDistanceRef.current += pointsDistance (position1Ref.current, position2);
 
-				// Now this is the first position for next update.
-				//
-				position1Ref.current = position2;
-			},
-			(error) => {
-				console.log ("Geolocation.watchPosition error : ", error);
-			},
-			geoConfig
-		);
-	}
+            // Now this is the first position for next update.
+            //
+            position1Ref.current = position2;
 
-	const startForegroundService = async () => {
-		if (Platform.Version >= 26) {
-			await VIForegroundService.getInstance().createNotificationChannel({
-				id              : "locationChannel",
-				name            : "Location Tracking Channel",
-				description     : "Tracks location of user",
-				enableVibration : false,
-			});
-		}
-		return VIForegroundService.getInstance().startService({
-			channelId : "locationChannel",
-			id        : 420,
-			title     : "Distans",
-			text      : "Tracking location updates",
-			icon      : "ic_launcher",
-		});
-	};
+         },
+         (error) => {
+            console.log ("Geolocation.watchPosition error : ", error);
+         },
+         geoConfig
+      );
+   }
 
-	function convertMetresToUnits (metres, fix) {
-		if (units === "miles") {
-			return (metres / 1609.34).toFixed(fix ? fix : distanceResolution);
-		} else {
-			return (metres / 1000.00).toFixed(fix ? fix : distanceResolution);
-		}
-	}
+   const startForegroundService = async () => {
+      if (Platform.Version >= 26) {
+         await VIForegroundService.getInstance().createNotificationChannel({
+            id              : "locationChannel",
+            name            : "Location Tracking Channel",
+            description     : "Tracks location of user",
+            enableVibration : false,
+         });
+      }
+      return VIForegroundService.getInstance().startService({
+         channelId : "locationChannel",
+         id        : 420,
+         title     : "Distans",
+         text      : "Tracking location updates",
+         icon      : "ic_launcher",
+      });
+   };
 
-	function calculateSpeed () {
-		let thisSpeed = 3600 * (trackDistanceRef.current / timeTaken ); // meters per hour.
-		setSpeed (thisSpeed);
-		return thisSpeed;
-	}
-	function onStartPress          () {
-		setAction                  ('start');
-		trackDistanceRef.current = 0;
-		getCurrentLocation         ();
-		const secondsSinceEpoch  = Math.round(Date.now() / 1000);
-		setStartTimeS              (secondsSinceEpoch);
-		setTimeTaken               (0);
-		getLocationUpdates         ();
-		setSpeed                   (0);
-	}
-	function onPausePress () {
-		setAction          ('pause');
-		stopLocationUpdates();
-	}
-	function onReStartPress () {
-		setAction          ('restart');
-		getLocationUpdates ();
+   function convertMetresToUnits (metres, fix) {
+      if (units === "miles") {
+         return (metres / 1609.34).toFixed(fix ? fix : distanceResolution);
+      } else {
+         return (metres / 1000.00).toFixed(fix ? fix : distanceResolution);
+      }
+   }
 
-		// pausedTime increases on every pause, there maybe more than one pause in a journey/route/track.
-		// pausedTime is the number of seconds the user pauses before restart which, initially 0, gets 
-		// subtracted from the timeTaken in updateTimer above.
-		//
-		let now = Math.round(Date.now() / 1000);
-		setPausedTime ((pausedTime) => pausedTime + now - timeOfPause);
-	}
-	function onStopPress () {
-		setAction('stop');
-		stopLocationUpdates();
-		calculateSpeed(); // setSpeed called in here.
-		trackDistanceRef.current > 0.0 && setShowSaveModal(true);
-	}
-	async function saveTrack (comment) {
+   function calculateSpeed () {
+      let thisSpeed = 3600 * (trackDistanceRef.current / timeTaken ); // meters per hour.
+      setSpeed (thisSpeed);
+      return thisSpeed;
+   }
+   function onStartPress          () {
+      setAction                  ('start');
+      trackDistanceRef.current = 0;
+      getCurrentLocation         ();
+      const secondsSinceEpoch  = Math.round(Date.now() / 1000);
+      setStartTimeS              (secondsSinceEpoch);
+      setTimeTaken               (0);
+      getLocationUpdates         ();
+      setSpeed                   (0);
+   }
+   function onPausePress () {
+      setAction          ('pause');
+      stopLocationUpdates();
+   }
+   function onReStartPress () {
+      setAction          ('restart');
+      getLocationUpdates ();
 
-		// Don't save a track with no miles or km in.
-		//
-		if (trackDistanceRef.current > 0.0) {
-			let currentHistory = history.slice();
-			let thisTrack = {
-				date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
-				distance  : trackDistanceRef.current,
-				time      : new Date(timeTaken * 1000).toISOString().slice(11, 19),
-				units     : units,
-				speed     : speed,
-				comment   : comment,
-			};
-			await addTrack (thisTrack);
-			currentHistory.push (thisTrack);
-			setHistory (currentHistory);
-		}
-	}
+      // pausedTime increases on every pause, there maybe more than one pause in a journey/route/track.
+      // pausedTime is the number of seconds the user pauses before restart which, initially 0, gets 
+      // subtracted from the timeTaken in updateTimer above.
+      //
+      let now = Math.round(Date.now() / 1000);
+      setPausedTime ((pausedTime) => pausedTime + now - timeOfPause);
+   }
+   function onStopPress () {
+      setAction('stop');
+      stopLocationUpdates();
+      calculateSpeed(); // setSpeed called in here.
+      trackDistanceRef.current > 0.0 && setShowSaveModal(true);
+   }
+   async function saveTrack (comment) {
 
-	async function testTracks () {
-		let testData = [];
-		let comments = [
-			"To Dad\'s",
-			"Walk",
-			"Grandma birthday walk",
-			"To Jon\'s work",
-			"Run",
-			"Fred",
-			"Drive to work",
-			"Ride on Chestnut",
-			"Walk",
-			"Walk",
-			"Run",
-			"David\'s pad",
-			"Walk",
-			"Run, slow.",
-			"To Dad\'s",
-			"Graham took this over!",
-			"Drive to Work",
-			"Walk",
-			"Run",
-			"Chestnut",
-		];
-		let distances = [
-			10000,
-			7000,
-			3000,
-			45000,
-			10000,
-			20000,
-			15000,
-			15000,
-			6000,
-		];
-		let times = [
-			754, // "00:12:34",
-			5419, //"01:30:19",
-			3765, // "01:02:45",
-			3313, //"00:55:13",
-			4378, // "01:12:58",
-			1654, //"00:27:34",
-			2361, //"00:39:21",
-			6313, //"01:45:13",
-			7376, // "02:02:56",
-		];
-		for (let i=0; i < 9; i++) {
-			let thisTrack = {
-				date : new Date(new Date() - Math.random()*(1e+9)).toLocaleString('en-GB', { timeZone: 'UTC' }),
-				distance  : distances[i],
+      // Don't save a track with no miles or km in.
+      //
+      if (trackDistanceRef.current > 0.0) {
+         let currentHistory = history.slice();
+         let thisTrack = {
+            date      : new Date().toLocaleString('en-GB', { timeZone: 'UTC' }),
+            distance  : trackDistanceRef.current,
+            time      : new Date(timeTaken * 1000).toISOString().slice(11, 19),
+            units     : units,
+            speed     : speed,
+            comment   : comment,
+         };
+         await addTrack (thisTrack);
+         currentHistory.push (thisTrack);
+         setHistory (currentHistory);
+      }
+   }
+
+   async function testTracks () {
+      let testData = [];
+      let comments = [
+         "To Dad\'s",
+         "Walk",
+         "Grandma birthday walk",
+         "To Jon\'s work",
+         "Run",
+         "Fred",
+         "Drive to work",
+         "Ride on Chestnut",
+         "Walk",
+         "Walk",
+         "Run",
+         "David\'s pad",
+         "Walk",
+         "Run, slow.",
+         "To Dad\'s",
+         "Graham took this over!",
+         "Drive to Work",
+         "Walk",
+         "Run",
+         "Chestnut",
+      ];
+      let distances = [
+         10000,
+         7000,
+         3000,
+         45000,
+         10000,
+         20000,
+         15000,
+         15000,
+         6000,
+      ];
+      let times = [
+         754, // "00:12:34",
+         5419, //"01:30:19",
+         3765, // "01:02:45",
+         3313, //"00:55:13",
+         4378, // "01:12:58",
+         1654, //"00:27:34",
+         2361, //"00:39:21",
+         6313, //"01:45:13",
+         7376, // "02:02:56",
+      ];
+      for (let i=0; i < 9; i++) {
+         let thisTrack = {
+            date : new Date(new Date() - Math.random()*(1e+9)).toLocaleString('en-GB', { timeZone: 'UTC' }),
+            distance  : distances[i],
                 time      : new Date(1000 * times[i]).toISOString().slice(11, 19),
                 units     : units,
                 speed     : 3600.0 * (distances[i] / times[i]),
                 comment   : comments[i],
-			}
-			testData.push (thisTrack);
-		}
-		/*
-		let thisTrack = {
-			date      : new Date("Sat 23 July 2022").toString(),
-			distance  : 2.30,
-			time      : "00:12:34",
-			units     : units,
-			speed     : 17.0,
-			comment   : "Test Track 2022",
-		}
-		testData.push (thisTrack);
-		*/
-		console.log ("testData : ", testData);
-		testData.sort(function(a,b) {
-			return new Date(a.date) - new Date(b.date);
-		});
-		let currentHistory = history.slice();
-		for (let i=0; i < testData.length; i++) {
+         }
+         testData.push (thisTrack);
+      }
+      /*
+      let thisTrack = {
+         date      : new Date("Sat 23 July 2022").toString(),
+         distance  : 2.30,
+         time      : "00:12:34",
+         units     : units,
+         speed     : 17.0,
+         comment   : "Test Track 2022",
+      }
+      testData.push (thisTrack);
+      */
+      console.log ("testData : ", testData);
+      testData.sort(function(a,b) {
+         return new Date(a.date) - new Date(b.date);
+      });
+      let currentHistory = history.slice();
+      for (let i=0; i < testData.length; i++) {
             await addTrack (testData[i]);
             currentHistory.push (testData[i]);
-		}
-		setHistory (currentHistory);
-	}
-	async function clearHistory () {
-		await clearTracks();
-		setHistory ([]);
-	}
-	function showHistoryPage () {
-		if (action === 'stop') {
-			setHistoryPage(true);
-			setSettingsPage(false);
-		}
-	}
-	function showMainPage () {
-		setHistoryPage(false);
-		setSettingsPage(false);
-	}
-	function showSettingsPage () {
-		if (action === 'stop') {
-			setSettingsPage(true);
-			setHistoryPage(false);
-		}
-	}
-	function Header ({ page }) {
-		return (
-			<View style={[styles.spaceBetween, styles.mauveBox]}>
-				<Image
-					source={require ("./src/assets/images/distans-icon.png")}
-					style={styles.logoImage}
-				/>
-				<Text style={styles.title}>
-					Distans
-				</Text>
-				{page.match(/main|history|nopermissions/) &&
-				<TouchableOpacity
-					onPress={() => showSettingsPage ()}
-				>
-					<FontAwesomeIcon  color={action !== 'stop' ? distansGrey : distansColour} size={35} icon={faGear} />
-				</TouchableOpacity>
-				}
-				{page.match(/main|settings|nopermissions/) && history.length > 0 &&
-				<TouchableOpacity
-					onPress={() => showHistoryPage ()}
-				>
-					<FontAwesomeIcon  color={action !== 'stop' ? distansGrey : distansColour} size={35} icon={faCalendar} />
-				</TouchableOpacity>
-				}
-				{page.match(/history|settings|nopermissions/) &&
-				<TouchableOpacity
-					onPress={() => showMainPage ()}
-				>
-					<FontAwesomeIcon  color={distansColour} size={35} icon={faHouse} />
-				</TouchableOpacity>
-				}
-			</View>
-		);
-	}
+      }
+      setHistory (currentHistory);
+   }
+   async function clearHistory () {
+      await clearTracks();
+      setHistory ([]);
+   }
+   function showHistoryPage () {
+      if (action === 'stop') {
+         setHistoryPage(true);
+         setSettingsPage(false);
+      }
+   }
+   function showMainPage () {
+      setHistoryPage(false);
+      setSettingsPage(false);
+   }
+   function showSettingsPage () {
+      if (action === 'stop') {
+         setSettingsPage(true);
+         setHistoryPage(false);
+      }
+   }
+   function Header ({ page }) {
+      return (
+         <View style={[styles.spaceBetween, styles.mauveBox]}>
+            <Image
+               source={require ("./src/assets/images/distans-icon.png")}
+               style={styles.logoImage}
+            />
+            <Text style={styles.title}>
+               Distans
+            </Text>
+            {page.match(/main|history|nopermissions/) &&
+            <TouchableOpacity
+               onPress={() => showSettingsPage ()}
+            >
+               <FontAwesomeIcon  color={action !== 'stop' ? distansGrey : distansColour} size={35} icon={faGear} />
+            </TouchableOpacity>
+            }
+            {page.match(/main|settings|nopermissions/) && history.length > 0 &&
+            <TouchableOpacity
+               onPress={() => showHistoryPage ()}
+            >
+               <FontAwesomeIcon  color={action !== 'stop' ? distansGrey : distansColour} size={35} icon={faCalendar} />
+            </TouchableOpacity>
+            }
+            {page.match(/history|settings|nopermissions/) &&
+            <TouchableOpacity
+               onPress={() => showMainPage ()}
+            >
+               <FontAwesomeIcon  color={distansColour} size={35} icon={faHouse} />
+            </TouchableOpacity>
+            }
+         </View>
+      );
+   }
 
-	function MainPage () {
-		return (
-			<>
-			<Header page={'main'}/>
-			<View style={styles.mainPageContainer}>
-				{!currentLocation?.coords?.latitude &&
-					<View style={styles.centre}>
-						<ActivityIndicator size="large" color={distansColour} />
-					</View>
-				}
-				{action === 'stop' && currentLocation?.coords?.latitude && <View>
-					<TouchableOpacity
-						style={styles.button}
-						onPress={() => onStartPress()}
-					>
-						<Text style={styles.buttonText}>Start</Text>
-					</TouchableOpacity>
-				</View>}
-				{action.match(/start|pause/) && <View>
-					<TouchableOpacity
-						style={styles.button}
-						onPress={() => onStopPress()}
-					>
-						<Text style={styles.buttonText}>Stop</Text>
-					</TouchableOpacity>
-				</View>}
-				<View style={styles.centeredView}>
-					<Text style={styles.title}>
-						{convertMetresToUnits(trackDistanceRef?.current || 0.0)} {units}
-					</Text>
-					<Text style={styles.title}>
-						{timerDays}{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
-					</Text>
-					<Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
-					<Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
-					<Text style={styles.medText}>{speed > 0.0 ? convertMetresToUnits(speed)+units.charAt(0)+'ph' : ''}</Text>
-				</View>
-				{action.match(/start/) && <View>
-					<TouchableOpacity
-						style={styles.button}
-						onPress={() => onPausePress()}
-					>
-						<Text style={styles.buttonText}>Pause</Text>
-					</TouchableOpacity>
-				</View>}
-				{action === 'pause' && <View>
-					<TouchableOpacity
-						style={styles.button}
-						onPress={() => onReStartPress()}
-					>
-						<Text style={styles.buttonText}>Restart</Text>
-					</TouchableOpacity>
-				</View>}
-				{showSaveModal && <SaveModal
-					setShowSaveModal={setShowSaveModal}
-					saveTrack={saveTrack}
-				/>}
-			</View>
-			</>
-		)
-	}
-	function calculateAverages(hash) {
-		let returnArray = [];
-		for (const [title, tracks] of Object.entries(hash)) {
-			let totalDistance = 0.0;
-			let totalTime     = 0.0;
-			tracks.forEach ((thisTrack, index) => {
-				totalDistance += parseFloat(thisTrack.distance);
+   function MainPage () {
+      return (
+         <>
+         <Header page={'main'}/>
+         <View style={styles.mainPageContainer}>
+            {!currentLocation?.coords?.latitude &&
+               <View style={styles.centre}>
+                  <ActivityIndicator size="large" color={distansColour} />
+               </View>
+            }
+            {action === 'stop' && currentLocation?.coords?.latitude && <View>
+               <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => onStartPress()}
+               >
+                  <Text style={styles.buttonText}>Start</Text>
+               </TouchableOpacity>
+            </View>}
+            {action.match(/start|pause/) && <View>
+               <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => onStopPress()}
+               >
+                  <Text style={styles.buttonText}>Stop</Text>
+               </TouchableOpacity>
+            </View>}
+            <View style={styles.centeredView}>
+               <Text style={styles.title}>
+                  {convertMetresToUnits(trackDistanceRef?.current || 0.0)} {units}
+               </Text>
+               <Text style={styles.title}>
+                  {timerDays}{new Date(timeTaken * 1000).toISOString().slice(11, 19)}
+               </Text>
+               <Text style={styles.medText}>Lat  : {currentLocation?.coords?.latitude  || "computing ..."}</Text>
+               <Text style={styles.medText}>Long : {currentLocation?.coords?.longitude || "computing ..."}</Text>
+               <Text style={styles.medText}>{speed > 0.0 ? convertMetresToUnits(speed)+units.charAt(0)+'ph' : ''}</Text>
+            </View>
+            {action.match(/start/) && <View>
+               <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => onPausePress()}
+               >
+                  <Text style={styles.buttonText}>Pause</Text>
+               </TouchableOpacity>
+            </View>}
+            {action === 'pause' && <View>
+               <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => onReStartPress()}
+               >
+                  <Text style={styles.buttonText}>Restart</Text>
+               </TouchableOpacity>
+            </View>}
+            {showSaveModal && <SaveModal
+               setShowSaveModal={setShowSaveModal}
+               saveTrack={saveTrack}
+            />}
+         </View>
+         </>
+      )
+   }
+   function calculateAverages(hash) {
+      let returnArray = [];
+      for (const [title, tracks] of Object.entries(hash)) {
+         let totalDistance = 0.0;
+         let totalTime     = 0.0;
+         tracks.forEach ((thisTrack, index) => {
+            totalDistance += parseFloat(thisTrack.distance);
 
-				// https://stackoverflow.com/questions/9640266/convert-hhmmss-string-to-seconds-only-in-javascript
-				//
-				let timeS     = thisTrack.time.split(':').reduce((acc,time) => (60 * acc) + +time);
-				totalTime     += parseFloat(timeS);
-			});
-			let averageSpeed = 3600.0 * (totalDistance / totalTime); // meters per hour.
+            // https://stackoverflow.com/questions/9640266/convert-hhmmss-string-to-seconds-only-in-javascript
+            //
+            let timeS     = thisTrack.time.split(':').reduce((acc,time) => (60 * acc) + +time);
+            totalTime     += parseFloat(timeS);
+         });
+         let averageSpeed = 3600.0 * (totalDistance / totalTime); // meters per hour.
 
-			// Convert seconds back to HH:MM:SS
-			//
-			var date       = new Date(0);
-			date.setSeconds(totalTime);
-			var timeString = date.toISOString().substring(11, 19);
+         // Convert seconds back to HH:MM:SS
+         //
+         var date       = new Date(0);
+         date.setSeconds(totalTime);
+         var timeString = date.toISOString().substring(11, 19);
 
-			returnArray.push({
-				title         : title,
-				averageSpeed  : averageSpeed,
-				totalDistance : totalDistance,
-				totalTime     : timeString,
-				numTracks     : tracks.length,
-			});
-		}
+         returnArray.push({
+            title         : title,
+            averageSpeed  : averageSpeed,
+            totalDistance : totalDistance,
+            totalTime     : timeString,
+            numTracks     : tracks.length,
+         });
+      }
 
-		// Comes in as a hash, not necessarily in the same order it was created.
-		//
-		returnArray.sort(function(a,b) {
+      // Comes in as a hash, not necessarily in the same order it was created.
+      //
+      returnArray.sort(function(a,b) {
 
-			// Dec 24 2022 to Dec 30 2022 - Weekly
-			//
-			if (a.title.match (/ to /)) {
-				return new Date(a.title.replace(/ to .+$/, '')) - new Date(b.title.replace(/ to .+$/, ''));
+         // Dec 24 2022 to Dec 30 2022 - Weekly
+         //
+         if (a.title.match (/ to /)) {
+            return new Date(a.title.replace(/ to .+$/, '')) - new Date(b.title.replace(/ to .+$/, ''));
 
-			// Jun 2023 - Monthly
-			//
-			} else if (a.title.match (/^........$/)) {
-				return new Date("01 " + a.title) - new Date("01 " + b.title);
+         // Jun 2023 - Monthly
+         //
+         } else if (a.title.match (/^........$/)) {
+            return new Date("01 " + a.title) - new Date("01 " + b.title);
 
-			// Just a year.
-			//
-			} else if (a.title.match(/^\d\d\d\d$/)) {
-				return new Date("01 Mar " + a.title) - new Date("01 Mar " + b.title);
-			}
-			return new Date(a.title) - new Date(b.title);
-		});
-		return returnArray;
-	}
-	function fillInDayGaps(dayArray) {
+         // Just a year.
+         //
+         } else if (a.title.match(/^\d\d\d\d$/)) {
+            return new Date("01 Mar " + a.title) - new Date("01 Mar " + b.title);
+         }
+         return new Date(a.title) - new Date(b.title);
+      });
+      return returnArray;
+   }
+   function fillInDayGaps(dayArray) {
 
-		// First get a record of the days we have data for,
-		//
-		let daysHash = {};
-		dayArray.forEach ((item, index) => {
-			daysHash[item.title] = 1;
-		});
+      // First get a record of the days we have data for,
+      //
+      let daysHash = {};
+      dayArray.forEach ((item, index) => {
+         daysHash[item.title] = 1;
+      });
 
-		// Number of days between first and last day we have data for.
-		//
-		let firstDay = new Date(dayArray[0].title);
-		let lastDay  = new Date(dayArray[dayArray.length-1].title);
-		let numDays  = Math.floor((lastDay - firstDay) / (24 * 60 * 60 * 1000));
+      // Number of days between first and last day we have data for.
+      //
+      let firstDay = new Date(dayArray[0].title);
+      let lastDay  = new Date(dayArray[dayArray.length-1].title);
+      let numDays  = Math.floor((lastDay - firstDay) / (24 * 60 * 60 * 1000));
 
-		// Count the days from the start of recording and see if we've got data, if not,
-		// insert a blank day.
-		//
-		for (let i=1; i < numDays; i++) {
+      // Count the days from the start of recording and see if we've got data, if not,
+      // insert a blank day.
+      //
+      for (let i=1; i < numDays; i++) {
 
-			// Increment the date.
-			//
-			let thisDay = new Date(dayArray[0].title);
-			thisDay.setDate(thisDay.getDate() + i);
-			let localeThisDay = thisDay.toLocaleString('en-GB', { timeZone: 'UTC' }).replace (/\d\d:\d\d:\d\d /, '');
+         // Increment the date.
+         //
+         let thisDay = new Date(dayArray[0].title);
+         thisDay.setDate(thisDay.getDate() + i);
+         let localeThisDay = thisDay.toLocaleString('en-GB', { timeZone: 'UTC' }).replace (/\d\d:\d\d:\d\d /, '');
 
-			// Missed day.
-			//
-			if (typeof daysHash[localeThisDay] === "undefined") {
-				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
-				thisBlankItem.title = localeThisDay;
+         // Missed day.
+         //
+         if (typeof daysHash[localeThisDay] === "undefined") {
+            let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+            thisBlankItem.title = localeThisDay;
 
-				// Add to the end of the array, we'll sort by date later.
-				//
-				dayArray.push (thisBlankItem);
-			}
-		}
+            // Add to the end of the array, we'll sort by date later.
+            //
+            dayArray.push (thisBlankItem);
+         }
+      }
 
-		// Now sort the data and non-data days by date.
-		//
-		dayArray.sort(function(a,b) {
-			return new Date(a.title) - new Date(b.title);
-		});
-		return dayArray;
-	}
-	function fillInWeekGaps(weekArray){
+      // Now sort the data and non-data days by date.
+      //
+      dayArray.sort(function(a,b) {
+         return new Date(a.title) - new Date(b.title);
+      });
+      return dayArray;
+   }
+   function fillInWeekGaps(weekArray){
 
-		// First get a record of the weeks we have data for,
-		//
-		let weeksHash = {};
-		weekArray.forEach ((item, index) => {
-			weeksHash[item.title] = 1;
-		});
+      // First get a record of the weeks we have data for,
+      //
+      let weeksHash = {};
+      weekArray.forEach ((item, index) => {
+         weeksHash[item.title] = 1;
+      });
 
-		// Feb 26 2023 to Mar 04 2023
-		//
-		// Number of weeks between first and last week we have data for.
-		//
-		let firstDay  = new Date(weekArray[0].title.replace(/ to.+$/, ''));
-		let lastDay   = new Date(weekArray[weekArray.length-1].title.replace(/^.+ to /, ''));
-		let numWeeks  = Math.ceil((lastDay - firstDay) / (7 * 24 * 60 * 60 * 1000));
-		for (let i=0; i < numWeeks; i++) {
+      // Feb 26 2023 to Mar 04 2023
+      //
+      // Number of weeks between first and last week we have data for.
+      //
+      let firstDay  = new Date(weekArray[0].title.replace(/ to.+$/, ''));
+      let lastDay   = new Date(weekArray[weekArray.length-1].title.replace(/^.+ to /, ''));
+      let numWeeks  = Math.ceil((lastDay - firstDay) / (7 * 24 * 60 * 60 * 1000));
+      for (let i=0; i < numWeeks; i++) {
 
-			// Increment the dates by a week.
-			//
-			let thisFirstDay = new Date(firstDay);
-			let thisLastDay  = new Date(firstDay);
-			thisLastDay.setDate(thisLastDay.getDate() + 6)
+         // Increment the dates by a week.
+         //
+         let thisFirstDay = new Date(firstDay);
+         let thisLastDay  = new Date(firstDay);
+         thisLastDay.setDate(thisLastDay.getDate() + 6)
 
-			thisFirstDay.setDate(thisFirstDay.getDate() + (i * 7));
-			thisLastDay.setDate(thisLastDay.getDate()   + (i * 7));
+         thisFirstDay.setDate(thisFirstDay.getDate() + (i * 7));
+         thisLastDay.setDate(thisLastDay.getDate()   + (i * 7));
 
-			let textFirstDay = thisFirstDay
-				.toString()
-				.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1');
+         let textFirstDay = thisFirstDay
+            .toString()
+            .replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1');
 
-			let textLastDay  = thisLastDay
-				.toString()
-				.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1')
+         let textLastDay  = thisLastDay
+            .toString()
+            .replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1')
 
-			// Missed day.
-			//
-			let hashKey = textFirstDay + " to " + textLastDay;
-			if (typeof weeksHash[hashKey] === "undefined") {
-				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
-				thisBlankItem.title = hashKey;
+         // Missed day.
+         //
+         let hashKey = textFirstDay + " to " + textLastDay;
+         if (typeof weeksHash[hashKey] === "undefined") {
+            let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+            thisBlankItem.title = hashKey;
 
-				// Add to the end of the array, we'll sort by date later.
-				//
-				weekArray.push (thisBlankItem);
-			}
-		}
-		weekArray.sort(function(a,b) {
-			return new Date(a.title.replace(/ to .*$/, '')) - new Date(b.title.replace(/ to .*$/, ''));
-		});
-		return weekArray;
-	}
-	function fillInMonthGaps(monthArray){
+            // Add to the end of the array, we'll sort by date later.
+            //
+            weekArray.push (thisBlankItem);
+         }
+      }
+      weekArray.sort(function(a,b) {
+         return new Date(a.title.replace(/ to .*$/, '')) - new Date(b.title.replace(/ to .*$/, ''));
+      });
+      return weekArray;
+   }
+   function fillInMonthGaps(monthArray){
 
-		// First get a record of the months we have data for nd the years span.
-		// "Mar 2023"
-		//
-		let monthsHash = {};
-		let yearsHash  = [];
-		let years      = [];
-		monthArray.forEach ((item, index) => {
-			monthsHash[item.title] = 1;
-			let year = item.title.replace(/^..../, '');
-			if (typeof yearsHash[year] === "undefined") {
-				years.push(year);
-			}
-			yearsHash[year] = 1;
-		});
-		let start     = monthArray[0].title;
-		let end       = monthArray[monthArray.length-1].title;
+      // First get a record of the months we have data for nd the years span.
+      // "Mar 2023"
+      //
+      let monthsHash = {};
+      let yearsHash  = [];
+      let years      = [];
+      monthArray.forEach ((item, index) => {
+         monthsHash[item.title] = 1;
+         let year = item.title.replace(/^..../, '');
+         if (typeof yearsHash[year] === "undefined") {
+            years.push(year);
+         }
+         yearsHash[year] = 1;
+      });
+      let start     = monthArray[0].title;
+      let end       = monthArray[monthArray.length-1].title;
 
-		// Number of months is : 
-		// Years*12 minus Months before first one munus Months after last one. Plus one.
-		//
-		let numMonths = (Object.keys(yearsHash).length * 12)
-			+ 1
-			- months.indexOf (start.replace(/^(...).+$/, '$1'))
-			- 12
-			+ months.indexOf (end.replace(/^(...).+$/, '$1'));
+      // Number of months is : 
+      // Years*12 minus Months before first one munus Months after last one. Plus one.
+      //
+      let numMonths = (Object.keys(yearsHash).length * 12)
+         + 1
+         - months.indexOf (start.replace(/^(...).+$/, '$1'))
+         - 12
+         + months.indexOf (end.replace(/^(...).+$/, '$1'));
 
 
-		// Get the array index of the first month we see data for.
-		//
-		let indexFirstMonth = months.indexOf (start.replace(/^(...).+$/, '$1'))
-		let yearIndex       = 0;
+      // Get the array index of the first month we see data for.
+      //
+      let indexFirstMonth = months.indexOf (start.replace(/^(...).+$/, '$1'))
+      let yearIndex       = 0;
 
-		// Get numMonths hashKeys to compare with data.
-		//
-		for (let j=0; j < numMonths; j++) {
-			let thisYear = years[yearIndex];
-			let hashKey;
-			if (indexFirstMonth > 11) {
-				yearIndex++;
-				indexFirstMonth = 0;
-			}
-			if (yearIndex > (years.length - 1)) break;
-			hashKey = months[indexFirstMonth] + " " + years[yearIndex];
-			if (typeof monthsHash[hashKey] === "undefined") {
-				let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
-				thisBlankItem.title = hashKey;
-				monthArray.push (thisBlankItem);
-			}
-			indexFirstMonth++;
-		}
+      // Get numMonths hashKeys to compare with data.
+      //
+      for (let j=0; j < numMonths; j++) {
+         let thisYear = years[yearIndex];
+         let hashKey;
+         if (indexFirstMonth > 11) {
+            yearIndex++;
+            indexFirstMonth = 0;
+         }
+         if (yearIndex > (years.length - 1)) break;
+         hashKey = months[indexFirstMonth] + " " + years[yearIndex];
+         if (typeof monthsHash[hashKey] === "undefined") {
+            let thisBlankItem   = JSON.parse(JSON.stringify(blankItem));
+            thisBlankItem.title = hashKey;
+            monthArray.push (thisBlankItem);
+         }
+         indexFirstMonth++;
+      }
 
-		monthArray.sort(function(a,b) {
-			return new Date("01 " + a.title) - new Date("01 " + b.title);
-		});
-		return monthArray;
-	}
-	function fillInYearGaps(yearArray){
-		return yearArray;
-	}
-	function getStatsBarHeights(dataArray, item) {
-		let maxDistance = 0.0;
-		dataArray.forEach ((thisItem, index) => {
-			if (maxDistance < parseFloat(thisItem.totalDistance)) {
-				maxDistance = parseFloat(thisItem.totalDistance);
-			}
-		});
-		if (maxDistance > 0.0) {
+      monthArray.sort(function(a,b) {
+         return new Date("01 " + a.title) - new Date("01 " + b.title);
+      });
+      return monthArray;
+   }
+   function fillInYearGaps(yearArray){
+      return yearArray;
+   }
+   function getStatsBarHeights(dataArray, item) {
+      let maxDistance = 0.0;
+      dataArray.forEach ((thisItem, index) => {
+         if (maxDistance < parseFloat(thisItem.totalDistance)) {
+            maxDistance = parseFloat(thisItem.totalDistance);
+         }
+      });
+      if (maxDistance > 0.0) {
             const colourHeight   = barChartHeight * (item.totalDistance / maxDistance)
             const whiteHeight    = barChartHeight - colourHeight;
             return ({whiteHeight : whiteHeight, colourHeight : colourHeight});
-		} else {
-			return ({whiteHeight : 1, colourHeight : 1});
-		}
+      } else {
+         return ({whiteHeight : 1, colourHeight : 1});
+      }
 
-	}
-	function ShowStats ({dataArray}) {
-		const thisScrollRef = useRef();
-		let chartWidth = Dimensions.get('window').width - historyWidthOffset;
-		if (dataArray.length > (Dimensions.get('window').width / maxHistoryBarWidth)) {
-			chartWidth = dataArray.length * maxHistoryBarWidth;
-		} 
-		let barWidth = (Dimensions.get('window').width / dataArray.length);
-		if (barWidth > maxHistoryBarWidth) {
-			barWidth = maxHistoryBarWidth;
-		} else {
-			barWidth = "95%";
-		}
-		return (
-			<ScrollView
+   }
+   function ShowStats ({dataArray}) {
+      const thisScrollRef = useRef();
+      let chartWidth = Dimensions.get('window').width - historyWidthOffset;
+      if (dataArray.length > (Dimensions.get('window').width / maxHistoryBarWidth)) {
+         chartWidth = dataArray.length * maxHistoryBarWidth;
+      } 
+      let barWidth = (Dimensions.get('window').width / dataArray.length);
+      if (barWidth > maxHistoryBarWidth) {
+         barWidth = maxHistoryBarWidth;
+      } else {
+         barWidth = "95%";
+      }
+      return (
+         <ScrollView
                 style={styles.historyScrollView}
                 ref={thisScrollRef}
                 horizontal={true}
@@ -840,277 +860,277 @@ const App: () => Node = () => {
                 <View style={[styles.historyContainer, {width : chartWidth}]}>
                     {dataArray.map ((data, index) => (
                         <View key={index} style={styles.historyTrackBar}>
-							{data.comment && 
-								<Text style={styles.textBoldSmall}>
-									{data.comment}
-								</Text>
-							}
-							{data.numTracks !== -1 &&
-								<Text style={styles.textSmall}>
-									{data.numTracks} journey{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''}
-								</Text>
-							}
-							<Text style={styles.textSmall}>
-								{convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime} / {convertMetresToUnits(data.averageSpeed, 2)}{units.charAt(0)}ph
+                     {data.comment && 
+                        <Text style={styles.textBoldSmall}>
+                           {data.comment}
+                        </Text>
+                     }
+                     {data.numTracks !== -1 &&
+                        <Text style={styles.textSmall}>
+                           {data.numTracks} journey{data.numTracks > 1 || data.numTracks == 0 ? 's' : ''}
+                        </Text>
+                     }
+                     <Text style={styles.textSmall}>
+                        {convertMetresToUnits(data.totalDistance)} {units} / {data.totalTime} / {convertMetresToUnits(data.averageSpeed, 2)}{units.charAt(0)}ph
                             </Text>
-							<View style={{
-								backgroundColor : 'white',
-								width           : barWidth,
-								height          : getStatsBarHeights(dataArray, data).whiteHeight,
-							}}>
-							</View>
-							<View style={{
-								backgroundColor : distansColour,
-								width           : barWidth,
-								height          : getStatsBarHeights(dataArray, data).colourHeight,
-							}}>
-							</View>
-							<Text style={styles.textBoldSmall}>{data.title}</Text>
-						</View>
-					))}
-				</View>
-			</ScrollView>
-		);
-	}
-	function HistoryStats () {
-		let dayHash   = {};
-		let weekHash  = {};
-		let monthHash = {};
-		let yearHash  = {};
-		history.forEach ((thisTrack, index) => {
+                     <View style={{
+                        backgroundColor : 'white',
+                        width           : barWidth,
+                        height          : getStatsBarHeights(dataArray, data).whiteHeight,
+                     }}>
+                     </View>
+                     <View style={{
+                        backgroundColor : distansColour,
+                        width           : barWidth,
+                        height          : getStatsBarHeights(dataArray, data).colourHeight,
+                     }}>
+                     </View>
+                     <Text style={styles.textBoldSmall}>{data.title}</Text>
+                  </View>
+               ))}
+            </View>
+         </ScrollView>
+      );
+   }
+   function HistoryStats () {
+      let dayHash   = {};
+      let weekHash  = {};
+      let monthHash = {};
+      let yearHash  = {};
+      history.forEach ((thisTrack, index) => {
 
-			// Tue Jun 20 16:03:59 2023
-			//
-			// Daily.
-			//
-			let day = thisTrack.date.replace (/\d\d:\d\d:\d\d /, ''); // Tue Jun 20 2023
-			if (typeof dayHash[day] === "undefined") {
-				dayHash[day] = [];
-			}
-			dayHash[day].push (thisTrack);
+         // Tue Jun 20 16:03:59 2023
+         //
+         // Daily.
+         //
+         let day = thisTrack.date.replace (/\d\d:\d\d:\d\d /, ''); // Tue Jun 20 2023
+         if (typeof dayHash[day] === "undefined") {
+            dayHash[day] = [];
+         }
+         dayHash[day].push (thisTrack);
 
-			// Weekly.
-			//
-			let thisDate   = new Date(thisTrack.date);
-			let year       = thisDate.getFullYear();
-			let startDate  = new Date(year, 0, 1);
-			let days       = Math.floor((thisDate - startDate) / (24 * 60 * 60 * 1000));
-			let weekNumber = Math.ceil(days / 7);
-			let daysToStart = (7 * (weekNumber - 1)) * 24 * 60 * 60 * 1000;
-			let daysToEnd   = daysToStart + (6 * 24 * 60 * 60 * 1000);
-			let weekStart  = new Date (startDate.getTime() + daysToStart).toString();
-			let weekEnd    = new Date (startDate.getTime() + daysToEnd).toString();
-			let hashKey    = ""
-				+ weekStart.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1')
-				+ " to "
-				+ weekEnd.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1');
-			//let hashKey    = "week#" + weekNumber + " " + year;
-			if (typeof weekHash[hashKey] === "undefined") {
-				weekHash[hashKey] = [];
-			}
-			weekHash[hashKey].push(thisTrack);
+         // Weekly.
+         //
+         let thisDate   = new Date(thisTrack.date);
+         let year       = thisDate.getFullYear();
+         let startDate  = new Date(year, 0, 1);
+         let days       = Math.floor((thisDate - startDate) / (24 * 60 * 60 * 1000));
+         let weekNumber = Math.ceil(days / 7);
+         let daysToStart = (7 * (weekNumber - 1)) * 24 * 60 * 60 * 1000;
+         let daysToEnd   = daysToStart + (6 * 24 * 60 * 60 * 1000);
+         let weekStart  = new Date (startDate.getTime() + daysToStart).toString();
+         let weekEnd    = new Date (startDate.getTime() + daysToEnd).toString();
+         let hashKey    = ""
+            + weekStart.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1')
+            + " to "
+            + weekEnd.replace(/^....(.+) \d\d:\d\d:\d\d.+/, '$1');
+         //let hashKey    = "week#" + weekNumber + " " + year;
+         if (typeof weekHash[hashKey] === "undefined") {
+            weekHash[hashKey] = [];
+         }
+         weekHash[hashKey].push(thisTrack);
 
-			// "Month Year"
-			//
-			let month = months[thisDate.getMonth()];
-			hashKey   = `${month} ${year}`;
-			if (typeof monthHash[hashKey] === "undefined") {
-				monthHash[hashKey] = [];
-			}
-			monthHash[hashKey].push (thisTrack);
+         // "Month Year"
+         //
+         let month = months[thisDate.getMonth()];
+         hashKey   = `${month} ${year}`;
+         if (typeof monthHash[hashKey] === "undefined") {
+            monthHash[hashKey] = [];
+         }
+         monthHash[hashKey].push (thisTrack);
 
-			// Just year.
-			//
-			if (typeof yearHash[year]  === "undefined") {
-				yearHash[year] = [];
-			}
-			yearHash[year].push (thisTrack);
-		});
-		let dayArray   = calculateAverages (dayHash);
-		let weekArray  = calculateAverages (weekHash);
-		let monthArray = calculateAverages (monthHash);
-		let yearArray  = calculateAverages (yearHash);
+         // Just year.
+         //
+         if (typeof yearHash[year]  === "undefined") {
+            yearHash[year] = [];
+         }
+         yearHash[year].push (thisTrack);
+      });
+      let dayArray   = calculateAverages (dayHash);
+      let weekArray  = calculateAverages (weekHash);
+      let monthArray = calculateAverages (monthHash);
+      let yearArray  = calculateAverages (yearHash);
 
-		// There will be gaps where no journeys are taken in a day, week, month or year.
-		//
-		dayArray   = fillInDayGaps(dayArray);
-		weekArray  = fillInWeekGaps(weekArray);
-		monthArray = fillInMonthGaps(monthArray);
-		yearArray  = fillInYearGaps(yearArray);
+      // There will be gaps where no journeys are taken in a day, week, month or year.
+      //
+      dayArray   = fillInDayGaps(dayArray);
+      weekArray  = fillInWeekGaps(weekArray);
+      monthArray = fillInMonthGaps(monthArray);
+      yearArray  = fillInYearGaps(yearArray);
 
-		// Recently set is just history but with matching key/value pairs of the above.
-		//
-		let recentArray = [];
-		history.slice(0,maxRecentTracks).forEach ((track, index) => {
-			recentArray.push({
-				comment       : track.comment,
+      // Recently set is just history but with matching key/value pairs of the above.
+      //
+      let recentArray = [];
+      history.slice(0,maxRecentTracks).forEach ((track, index) => {
+         recentArray.push({
+            comment       : track.comment,
                 title         : track.date,
                 averageSpeed  : track.speed,
                 totalDistance : track.distance,
                 totalTime     : track.time,
                 numTracks     : -1, // ie don't show this.
             });
-		});
+      });
 
-		return (
-			<View>
-				<Text      key={'History'}  style={styles.titleMed}>History</Text>
-				<Text      key={'Recently'} style={styles.bigText}>Recently</Text>
-				<ShowStats key={'recent'}   dataArray={recentArray} />
-				<Text      key={'Daily'}    style={styles.bigText}>Daily</Text>
-				<ShowStats key={'day'}      dataArray={dayArray} />
-				<Text      key={'Weekly'}   style={styles.bigText}>Weekly</Text>
-				<ShowStats key={'week'}     dataArray={weekArray} />
-				<Text      key={'Monthly'}  style={styles.bigText}>Monthly</Text>
-				<ShowStats key={'month'}    dataArray={monthArray} />
-				<Text      key={'Annually'} style={styles.bigText}>Annually</Text>
-				<ShowStats key={'year'}     dataArray={yearArray} />
-			</View>
-		);
-	}
-	function HistoryPage () {
-		return (
-			<>
-			{generateTestTrackButton &&
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => testTracks ()}
-				>
-					<Text style={styles.buttonText}>Generate Test Tracks</Text>
-				</TouchableOpacity>
-			}
-			<Header page={'history'} />
-			{history.length === 0 &&
-				<Text>No history recorded yet.</Text>
-			}
-			{history.length > 0 &&
-				<>
-				<HistoryStats />
-				{showClearHistory &&
-					<TouchableOpacity
-						style={styles.button}
-						onPress={() => clearHistory ()}
-					>
-						<Text style={styles.buttonText}>Clear History</Text>
-					</TouchableOpacity>
-				}
-				</>
-			}
-			</>
-		);
-	}
-	function SettingsPage () {
-		const [selected, setSelected] = useState (units);
-		function saveUnits () {
-			setUnits(selected);
-			showMainPage ();
-			ToastAndroid.show(`Units saved as ${selected}`, ToastAndroid.SHORT);
-		}
-		return (
-			<>
-			<Header page={'settings'} />
-			<View style={styles.settingsContainer}>
-				<TouchableOpacity
-					onPress={() => setSelected('miles')}
-				>
-					<FontAwesomeIcon 
-						style={styles.fontAwesomeIcon}
-						color={selected === 'miles' ? distansColour : distansGrey}
-						size={50}
-						icon={faCircleDot}
-					/>
-					<Text>Miles</Text>
-				</TouchableOpacity>
-				<TouchableOpacity
-					onPress={() => setSelected('km')}
-				>
-					<FontAwesomeIcon
-						style={styles.fontAwesomeIcon}
-						color={selected === 'km' ? distansColour : distansGrey}
-						size={50}
-						icon={faCircleDot}
-					/>
-					<Text>Kilometres</Text>
-				</TouchableOpacity>
-			</View>
-			<View
-				style={styles.settingsSave}
-			>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => saveUnits()}
-				>
-					<Text style={styles.buttonText}>Save</Text>
-				</TouchableOpacity>
-			</View>
-			</>
-		);
-	}
-	function settingsTryAgain () {
-		setHistoryPage(false);
-		setSettingsPage(false);
-		Linking.openSettings()
-	}
-	function NoPermissionsPage () {
-		return (
-			<>
-			<Header page={'nopermissions'} />
-			<Text style={styles.titleMed}>Location Permissions</Text>
-			<View style={styles.mainPageContainer}>
-				<Text style={styles.permsText}>
-					Hello, and thank you for downloading this simple, but useful Distans App!
-				</Text>
-				<Text style={styles.permsText}>
-					Is seems to us that you have not allowed the Distans App to have "Location" permissions, 
-					which is a shame because we need your location, in latitude and longitude ("lat/long"),
-					to determine the distances.
-				</Text>
-				<Text style={styles.permsText}>
-					Please be assured, though, that we do not record your lat/long, only the distance between
-					updating lat/long co-ordinates.  No location or distances are ever sent to any server, they 
-					stay, as distance, speed and time only, on your device, within the App. No other App has
-					access to your history of journeys.
-				</Text>
-				<Text style={styles.permsText}>
-					Please go to your Android Settings and change the location preferrances with the button below.
-					And due to the seemingly ever-changing Android Settings pages, it might be easier to uninstal
-					Distans and then re-install it, allowing Distans to have access to your location, which is never
-					recorded, did we say that? :)
-				</Text>
-				<Text style={styles.permsText}>
-					Also, it seems there are some issues with Android permissions settings, which require the Distans App 
-					to be restarted. So please restart Distans once
-					you have kindly updated the settings from the button below. You will keep seeing this page otherwise.
-					We know, not much we can do, sorry.
-				</Text>
-				<Text>   </Text>
-				<TouchableOpacity
-					style={styles.button}
-					onPress={() => settingsTryAgain()}
-				>
-					<FontAwesomeIcon  color={distansWhite} size={35} icon={faGear} />
-					<Text style={styles.buttonText}>Go to Android Settings</Text>
-				</TouchableOpacity>
-			</View>
-			</>
-		);
-	}
+      return (
+         <View>
+            <Text      key={'History'}  style={styles.titleMed}>History</Text>
+            <Text      key={'Recently'} style={styles.bigText}>Recently</Text>
+            <ShowStats key={'recent'}   dataArray={recentArray} />
+            <Text      key={'Daily'}    style={styles.bigText}>Daily</Text>
+            <ShowStats key={'day'}      dataArray={dayArray} />
+            <Text      key={'Weekly'}   style={styles.bigText}>Weekly</Text>
+            <ShowStats key={'week'}     dataArray={weekArray} />
+            <Text      key={'Monthly'}  style={styles.bigText}>Monthly</Text>
+            <ShowStats key={'month'}    dataArray={monthArray} />
+            <Text      key={'Annually'} style={styles.bigText}>Annually</Text>
+            <ShowStats key={'year'}     dataArray={yearArray} />
+         </View>
+      );
+   }
+   function HistoryPage () {
+      return (
+         <>
+         {generateTestTrackButton &&
+            <TouchableOpacity
+               style={styles.button}
+               onPress={() => testTracks ()}
+            >
+               <Text style={styles.buttonText}>Generate Test Tracks</Text>
+            </TouchableOpacity>
+         }
+         <Header page={'history'} />
+         {history.length === 0 &&
+            <Text>No history recorded yet.</Text>
+         }
+         {history.length > 0 &&
+            <>
+            <HistoryStats />
+            {showClearHistory &&
+               <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => clearHistory ()}
+               >
+                  <Text style={styles.buttonText}>Clear History</Text>
+               </TouchableOpacity>
+            }
+            </>
+         }
+         </>
+      );
+   }
+   function SettingsPage () {
+      const [selected, setSelected] = useState (units);
+      function saveUnits () {
+         setUnits(selected);
+         showMainPage ();
+         ToastAndroid.show(`Units saved as ${selected}`, ToastAndroid.SHORT);
+      }
+      return (
+         <>
+         <Header page={'settings'} />
+         <View style={styles.settingsContainer}>
+            <TouchableOpacity
+               onPress={() => setSelected('miles')}
+            >
+               <FontAwesomeIcon 
+                  style={styles.fontAwesomeIcon}
+                  color={selected === 'miles' ? distansColour : distansGrey}
+                  size={50}
+                  icon={faCircleDot}
+               />
+               <Text>Miles</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+               onPress={() => setSelected('km')}
+            >
+               <FontAwesomeIcon
+                  style={styles.fontAwesomeIcon}
+                  color={selected === 'km' ? distansColour : distansGrey}
+                  size={50}
+                  icon={faCircleDot}
+               />
+               <Text>Kilometres</Text>
+            </TouchableOpacity>
+         </View>
+         <View
+            style={styles.settingsSave}
+         >
+            <TouchableOpacity
+               style={styles.button}
+               onPress={() => saveUnits()}
+            >
+               <Text style={styles.buttonText}>Save</Text>
+            </TouchableOpacity>
+         </View>
+         </>
+      );
+   }
+   function settingsTryAgain () {
+      setHistoryPage(false);
+      setSettingsPage(false);
+      Linking.openSettings()
+   }
+   function NoPermissionsPage () {
+      return (
+         <>
+         <Header page={'nopermissions'} />
+         <Text style={styles.titleMed}>Location Permissions</Text>
+         <View style={styles.mainPageContainer}>
+            <Text style={styles.permsText}>
+               Hello, and thank you for downloading this simple, but useful Distans App!
+            </Text>
+            <Text style={styles.permsText}>
+               Is seems to us that you have not allowed the Distans App to have "Location" permissions, 
+               which is a shame because we need your location, in latitude and longitude ("lat/long"),
+               to determine the distances.
+            </Text>
+            <Text style={styles.permsText}>
+               Please be assured, though, that we do not record your lat/long, only the distance between
+               updating lat/long co-ordinates.  No location or distances are ever sent to any server, they 
+               stay, as distance, speed and time only, on your device, within the App. No other App has
+               access to your history of journeys.
+            </Text>
+            <Text style={styles.permsText}>
+               Please go to your Android Settings and change the location preferrances with the button below.
+               And due to the seemingly ever-changing Android Settings pages, it might be easier to uninstal
+               Distans and then re-install it, allowing Distans to have access to your location, which is never
+               recorded, did we say that? :)
+            </Text>
+            <Text style={styles.permsText}>
+               Also, it seems there are some issues with Android permissions settings, which require the Distans App 
+               to be restarted. So please restart Distans once
+               you have kindly updated the settings from the button below. You will keep seeing this page otherwise.
+               We know, not much we can do, sorry.
+            </Text>
+            <Text>   </Text>
+            <TouchableOpacity
+               style={styles.button}
+               onPress={() => settingsTryAgain()}
+            >
+               <FontAwesomeIcon  color={distansWhite} size={35} icon={faGear} />
+               <Text style={styles.buttonText}>Go to Android Settings</Text>
+            </TouchableOpacity>
+         </View>
+         </>
+      );
+   }
 
-	// https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
-	// The convoluted multi-ternary conditionals are my attempt to avoid having to use the
-	// infernal React Navigation bloatware.
-	//
-	return (
-		<SafeAreaView style={styles.container}>
-			<StatusBar />
-			<ScrollView
-				contentInsetAdjustmentBehavior="automatic"
-				keyboardShouldPersistTaps='handled'
-				ref={pageRef}
-			>
-				{noPermissions ? <NoPermissionsPage /> : historyPage ?  <HistoryPage /> :  settingsPage ?  <SettingsPage /> : <MainPage />}
-			</ScrollView>
-		</SafeAreaView>
-	);
+   // https://dev-yakuza.posstree.com/en/react-native/react-native-geolocation-service/
+   // The convoluted multi-ternary conditionals are my attempt to avoid having to use the
+   // infernal React Navigation bloatware.
+   //
+   return (
+      <SafeAreaView style={styles.container}>
+         <StatusBar />
+         <ScrollView
+            contentInsetAdjustmentBehavior="automatic"
+            keyboardShouldPersistTaps='handled'
+            ref={pageRef}
+         >
+            {noPermissions ? <NoPermissionsPage /> : historyPage ?  <HistoryPage /> :  settingsPage ?  <SettingsPage /> : <MainPage />}
+         </ScrollView>
+      </SafeAreaView>
+   );
 };
 export default App;
